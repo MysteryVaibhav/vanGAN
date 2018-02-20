@@ -1,6 +1,7 @@
 DATA_DIR = 'C:\\Users\\myste\\Downloads\\transmat\\data\\'
 EN_WORD_TO_VEC = 'EN.200K.cbow1_wind5_hs0_neg10_size300_smpl1e-05.txt'
 IT_WORD_TO_VEC = 'IT.200K.cbow1_wind5_hs0_neg10_size300_smpl1e-05.txt'
+EVAL_EUROPARL = 'OPUS_en_it_europarl_test.txt'
 
 # Model Hyper-Parameters
 #TODO: Add all these as program parameters
