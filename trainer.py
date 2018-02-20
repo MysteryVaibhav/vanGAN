@@ -109,6 +109,7 @@ def train():
         print("Epoch {} : Discriminator Loss: {:.5f}, Generator Loss: {:.5f}, Time elapsed {:.2f} mins".
               format(epoch, np.asscalar(np.mean(d_losses)), np.asscalar(np.mean(g_losses)),
                      (timer() - start_time) / 60))
+        torch.save(g.state_dict(), 'generator_weights_{}.t7'.format(epoch))
     return g
 
 
