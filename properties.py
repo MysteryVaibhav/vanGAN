@@ -1,9 +1,12 @@
-DATA_DIR = 'C:\\Users\\myste\\Downloads\\transmat\\data\\'
+DATA_DIR = '/Users/alankar/Documents/cmu/Spring-2018/NN for ' \
+           'NLP/Project/Assignment-1/vanGAN/data/'
 EN_WORD_TO_VEC = 'EN.200K.cbow1_wind5_hs0_neg10_size300_smpl1e-05.txt'
 IT_WORD_TO_VEC = 'IT.200K.cbow1_wind5_hs0_neg10_size300_smpl1e-05.txt'
+VALIDATION_FILE = 'OPUS_en_it_europarl_test.txt'
 
 # Model Hyper-Parameters
-#TODO: Add all these as program parameters
+# TODO: Add all these as program parameters
+
 g_input_size = 300     # Random noise dimension coming into generator, per output vector
 g_hidden_size = 50   # Generator complexity
 g_output_size = 300    # size of generated output vector
