@@ -6,6 +6,14 @@ import numpy as np
 import queue as Q
 
 
+# Returns the normalized vector
+def normalize(v):
+    norm = np.linalg.norm(v)
+    if norm == 0:
+        return v
+    return v / norm
+
+
 # Returns cosine distance between two vectors
 def cosine_dist(vec1, vec2):
     return np.dot(vec1, vec2) / (
@@ -13,12 +21,16 @@ def cosine_dist(vec1, vec2):
 
 
 # Naive knn implementation, computes distance of word with all vocab words in target language
-def knn(en_word, en_w2v, it_w2v, k=5):
+def knn(en_word, en_w2v, it_w2v, g, k=5):
     neighbours = set()
     if en_word in en_w2v:
         q = Q.PriorityQueue()
+        # TODO: Move the below tensor to GPU if needed. Skipping that for now, since the model is also on CPU
+        transformed_embedding = g(torch.autograd.Variable(torch.FloatTensor(en_w2v[en_word])))
+        transformed_embedding = normalize(transformed_embedding.data.numpy())
         for it_word in it_w2v:
-            q.put((-1 * cosine_dist(en_w2v[en_word], it_w2v[it_word]), it_word))
+            # TODO: Can be more efficient, embeddings can be pre-normalized
+            q.put((-1 * cosine_dist(transformed_embedding, normalize(it_w2v[it_word])), it_word))
         i = 0
         while i < k:
             top = q.get()
@@ -36,7 +48,7 @@ def evaluate(k):
     found = 0
     out_of_vocabulary_count = 0
     for word in en_it_mapping_truth:
-        neighbours = knn(word, en_w2v, it_w2v, k)
+        neighbours = knn(word, en_w2v, it_w2v, g, k)
         if len(neighbours) == 0:
             out_of_vocabulary_count += 1
             print("{} not in vocabulary !")
