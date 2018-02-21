@@ -31,6 +31,7 @@ Architecture choices (Facebook paper):
     (d) Use this average as a validation metric
 
 Installing Faiss (on Linux GPU):
+- Delete the faiss_master package from the repo.
 - Clone the Faiss repository inside vanGAN: git clone https://github.com/facebookresearch/faiss.git
 - Step-1: C++ Compilation:
     - Open the MakeFile. Set MAKEFILE_INC=example_makefiles/makefile.inc.Linux
