@@ -1,6 +1,6 @@
 import numpy as np
 import codecs
-from properties import *
+from src.properties import *
 
 
 # Returns a mapping of words and their embedding
@@ -36,7 +36,7 @@ def get_word_vectors_dicts(file, dir=DATA_DIR, save=False,
             if len(vec) == 300:
                 word2vec[split_row[0]] = vec
     if save:
-        np.save(DATA_DIR + save_file_as + '.npy', word2vec)
+        np.save(dir + save_file_as + '.npy', word2vec)
     return word2vec
 
 
@@ -52,7 +52,8 @@ def get_validation_set(file, dir=DATA_DIR, save=False,
             if key not in true_dict.keys():
                 true_dict[key] = []
                 true_dict[split_row[0]].append(value)
-
+    if save:
+        np.save(dir + save_file_as + '.npy', true_dict)
     return true_dict
 
 
@@ -67,18 +68,22 @@ def get_embeddings_dicts():
                                                         'it_dict.npy').item()
 
 
+def get_true_dict():
+    return np.load(DATA_DIR + 'validation.npy').item()
+
+
 if __name__ == '__main__':
     # Sanity check
     # word2vec_en = get_word_vectors(EN_WORD_TO_VEC, save=True, save_file_as='en')
     # word2vec_it = get_word_vectors(IT_WORD_TO_VEC, save=True, save_file_as='it')
     # print(word2vec_en['document'])
 
-    word2vec_en = get_word_vectors_dicts(EN_WORD_TO_VEC, save=True,
-                                   save_file_as='en_dict')
-    word2vec_it = get_word_vectors_dicts(IT_WORD_TO_VEC, save=True,
-                                   save_file_as='it_dict')
-    print(word2vec_en['document'])
+    # word2vec_en = get_word_vectors_dicts(EN_WORD_TO_VEC, save=True,
+    #                                save_file_as='en_dict')
+    # word2vec_it = get_word_vectors_dicts(IT_WORD_TO_VEC, save=True,
+    #                                save_file_as='it_dict')
+    # print(word2vec_en['document'])
 
-    # true_dict = get_validation_set(VALIDATION_FILE)
-    # print(true_dict)
-    # print(len(true_dict.keys()))
+    true_dict = get_validation_set(VALIDATION_FILE, save=True)
+    print(true_dict)
+    print(len(true_dict.keys()))

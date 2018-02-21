@@ -7,6 +7,7 @@ import torch.optim as optim
 from util import get_embeddings
 from model import Generator, Discriminator
 from timeit import default_timer as timer
+import torch.nn as nn
 
 
 def to_tensor(numpy_array):
@@ -54,6 +55,8 @@ def train():
         d = d.cuda()
         loss_fn = loss_fn.cuda()
 
+    dropout = nn.Dropout(p=dropout_rate, inplace=True)
+
     for epoch in range(num_epochs):
         d_losses = []
         g_losses = []
@@ -68,6 +71,7 @@ def train():
 
                 #  1A: Train D on real
                 d_real_data = to_variable(d_real_data)  # Could add some noise to the real data later
+                d_real_data = dropout(d_real_data)
                 d_real_decision = d(d_real_data)
                 d_real_error = loss_fn(d_real_decision, to_variable(torch.ones(mini_batch_size, 1)))  # ones = true
                 d_real_error.backward()  # compute/store gradients, but don't change params

@@ -25,6 +25,9 @@ class Discriminator(nn.Module):
         self.map3 = nn.Linear(hidden_size, output_size)
 
     def forward(self, x):
-        x = F.relu(self.map1(x))
-        x = F.relu(self.map2(x))
+        lerelu = nn.LeakyReLU()
+        x = lerelu(self.map1(x))
+        x = lerelu(self.map2(x))
+        # x = F.relu(self.map1(x))
+        # x = F.relu(self.map2(x))
         return F.sigmoid(self.map3(x))

@@ -13,7 +13,8 @@ g_output_size = 300    # size of generated output vector
 d_input_size = 300   # cardinality of distributions
 d_hidden_size = 50   # Discriminator complexity
 d_output_size = 1    # Single dimension for 'real' vs. 'fake'
-mini_batch_size = 64
+mini_batch_size = 32
+dropout_rate = 0.1
 
 d_learning_rate = 2e-4  # 2e-4
 g_learning_rate = 2e-4
