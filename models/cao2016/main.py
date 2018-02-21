@@ -163,6 +163,7 @@ class NegativeSamplingLoss():
         else:
             p_mono, p_cross = self.p_trg, self.p_src
         B = contexts.size(0)  # batch size
+
         # Positive samples
         loss = model.forward(contexts, targets).sigmoid().log().sum()
 
@@ -171,6 +172,10 @@ class NegativeSamplingLoss():
         targets_neg = [
             torch.multinomial(p_mono, n_neg, replacement=True).view((B, -1)),
             torch.multinomial(p_cross, n_neg, replacement=True).view((B, -1))]
+        if src:
+            targets_neg[1] += self.offset_trg
+        else:
+            targets_neg[0] += self.offset_trg
         targets_neg = Variable(torch.cat(targets_neg, dim=1))
         if use_cuda:
             targets_neg = targets_neg.cuda()
@@ -346,7 +351,7 @@ if __name__ == '__main__':
     parser.add_argument('--seed', dest='random_seed', type=int, default=42,
                         help='random seed')
     parser.add_argument('--model', dest='dir_model',
-                        required=True, help='path to a model directory')
+                        help='path to a model directory')
     parser.add_argument('-o', '--output', dest='path_output',
                         required=True, help='path to an output file')
     parser.add_argument('--cuda', action='store_true', default=False,
