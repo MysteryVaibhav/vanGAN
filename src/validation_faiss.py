@@ -145,7 +145,7 @@ def test_function(source_word_list):
 
 
 if __name__ == '__main__':
-    k = 5
+    k = 10
     true_dict = get_true_dict()
     source_word_list = true_dict.keys()
     g = train()
