@@ -2,7 +2,7 @@ import sys
 import torch
 import numpy as np
 import torch.utils.data
-from properties import *
+from src.properties import *
 import torch.optim as optim
 from util import get_embeddings
 from model import Generator, Discriminator
@@ -55,12 +55,7 @@ def train():
         d = d.cuda()
         loss_fn = loss_fn.cuda()
 
-<<<<<<< HEAD:src/trainer.py
-    dropout = nn.Dropout(p=dropout_rate, inplace=True)
-
-=======
     d_acc = []
->>>>>>> a2ee1ef8a73237fead0f788402073c3d10d3b339:trainer.py
     for epoch in range(num_epochs):
         d_losses = []
         g_losses = []
@@ -76,15 +71,14 @@ def train():
                 d.zero_grad()  # Reset the gradients
 
                 #  1A: Train D on real
-<<<<<<< HEAD:src/trainer.py
-                d_real_data = to_variable(d_real_data)  # Could add some noise to the real data later
-                d_real_data = dropout(d_real_data)
-=======
-                noise = torch.normal(torch.ones(mini_batch_size, d_input_size) * 5,
-                                     torch.ones(mini_batch_size, d_input_size) * 2)
-                d_real_data = to_variable(torch.mul(d_real_data, noise))  # Could add some noise to the real data later
-
->>>>>>> a2ee1ef8a73237fead0f788402073c3d10d3b339:trainer.py
+                # d_real_data = to_variable(d_real_data)  # Could add some
+                # noise to the real data later
+                noise = torch.normal(torch.ones(mini_batch_size,
+                                                 d_input_size) * 5,
+                                     torch.ones(mini_batch_size,
+                                                d_input_size) * 2)
+                d_real_data = to_variable(torch.mul(d_real_data, noise))
+                # Could add some noise to the real data later
                 d_real_decision = d(d_real_data)
                 real_discriminator_decision = d_real_decision.data.cpu().numpy()
                 hit += np.sum(real_discriminator_decision < 0.5)

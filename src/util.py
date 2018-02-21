@@ -78,12 +78,14 @@ if __name__ == '__main__':
     # word2vec_it = get_word_vectors(IT_WORD_TO_VEC, save=True, save_file_as='it')
     # print(word2vec_en['document'])
 
+    # Uncomment the following and run once if you wish to run validation:
+
     # word2vec_en = get_word_vectors_dicts(EN_WORD_TO_VEC, save=True,
     #                                save_file_as='en_dict')
     # word2vec_it = get_word_vectors_dicts(IT_WORD_TO_VEC, save=True,
     #                                save_file_as='it_dict')
     # print(word2vec_en['document'])
 
-    true_dict = get_validation_set(VALIDATION_FILE, save=True)
-    print(true_dict)
-    print(len(true_dict.keys()))
+    # true_dict = get_validation_set(VALIDATION_FILE, save=True)
+    # print(true_dict)
+    # print(len(true_dict.keys()))

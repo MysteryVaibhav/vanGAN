@@ -5,6 +5,7 @@ Steps for compiling:
 - Edit the properties file to set the path of the data directory (Download data from http://clic.cimec.unitn.it/~georgiana.dinu/down/)
 - Run the util file once, it reads the datafiles and creates a numpy array for faster access
 - Run the trainer to start training
+- (For validation) (a) Uncomment segment of util.py code and run it once. (b) Run validation_faiss.py file.
 
 Things to do:
 - Add initilization and update constraints for the parameters (orthogonality)
