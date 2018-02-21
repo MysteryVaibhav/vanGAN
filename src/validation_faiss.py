@@ -35,7 +35,7 @@ def get_translation_dict(source_word_list, target_word_list, knn_indices):
 
 
 def get_knn_indices(k, xb, xq):
-    index = faiss.IndexFlatL2(g_input_size)
+    index = faiss.IndexFlatIP(g_input_size)
     index.add(xb)
     distances, knn_indices = index.search(xq, k)
     return distances, knn_indices
@@ -126,10 +126,17 @@ def get_mapped_embeddings(g, source_word_list):
 
 def get_precision_k(k, g, true_dict):
     source_word_list = true_dict.keys()
+
     _, xb = get_embeddings()
     xb = np.float32(xb)
+    row_sum = np.linalg.norm(xb, axis=1)
+    xb = xb/row_sum[:, np.newaxis]
+
     xq, target_word_list = get_mapped_embeddings(g, source_word_list)
     xq = np.float32(xq)
+    row_sum = np.linalg.norm(xq, axis=1)
+    xq = xq/row_sum[:, np.newaxis]
+
     _, knn_indices = get_knn_indices(k, xb, xq)
     predicted_dict = get_translation_dict(source_word_list, target_word_list,
                                           knn_indices)
@@ -145,7 +152,7 @@ def test_function(source_word_list):
 
 
 if __name__ == '__main__':
-    k = 10
+    # k = 10
     true_dict = get_true_dict()
     source_word_list = true_dict.keys()
     g = train()
