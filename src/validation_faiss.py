@@ -4,6 +4,7 @@ from src.util import get_embeddings_dicts, get_validation_set, \
     get_embeddings, get_true_dict
 from src.properties import *
 from src.trainer import train, to_tensor, to_variable
+import json
 
 
 def calculate_precision(true_dict, predicted_dict):
@@ -26,10 +27,10 @@ def calculate_precision(true_dict, predicted_dict):
 def get_translation_dict(source_word_list, target_word_list, knn_indices):
     translation_dict = {}
     for (i, word) in enumerate(source_word_list):
-        print("%d: %s" % (i, word))
+        # print("%d: %s" % (i, word))
         translation_dict[word] = [target_word_list[j] for j in
                                   list(knn_indices[i])]
-    print(translation_dict)
+    print(json.dumps(translation_dict, indent=2))
     return translation_dict
 
 
@@ -119,11 +120,12 @@ def get_mapped_embeddings(g, source_word_list):
     mapped_embeddings = np.zeros((len(source_word_list), g_input_size))
     for (i, source_word) in enumerate(source_word_list):
         word_tensor = to_tensor(np.array(source_vec_dict[source_word]).astype(float))
-        mapped_embeddings[i] = g(to_variable(word_tensor)).data.numpy()
+        mapped_embeddings[i] = g(to_variable(word_tensor)).data.cpu().numpy()
     return mapped_embeddings, target_word_list
 
 
-def get_precision_k(k, g, source_word_list):
+def get_precision_k(k, g, true_dict):
+    source_word_list = true_dict.keys()
     _, xb = get_embeddings()
     xb = np.float32(xb)
     xq, target_word_list = get_mapped_embeddings(g, source_word_list)
@@ -144,7 +146,7 @@ def test_function(source_word_list):
 
 if __name__ == '__main__':
     k = 5
-    # true_dict = get_validation_set(VALIDATION_FILE, dir=DATA_DIR, save=False)
-    source_word_list = get_true_dict().keys()
+    true_dict = get_true_dict()
+    source_word_list = true_dict.keys()
     g = train()
-    print(get_precision_k(k, g, source_word_list))
+    print(get_precision_k(k, g, true_dict))

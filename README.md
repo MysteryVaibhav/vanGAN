@@ -47,4 +47,5 @@ Installing Faiss (on Linux GPU):
         PYTHONCFLAGS=-I/home/ubuntu/anaconda3/include/python3.6m/ -I/home/ubuntu/anaconda3/lib/python3.6/site-packages/numpy/core/include/
     - Go back to faiss/ directory and run: make py. This should run without errors.
     - Test faiss installation by running python -c "import faiss". It will display an error message that GPU not enabled and using the CPU installation. This is fine.
+- Step-3: You might have to change module import statements inside validation_faiss.py and faiss.py in case of ModuleNotFound errors.
 

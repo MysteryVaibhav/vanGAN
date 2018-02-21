@@ -86,6 +86,6 @@ if __name__ == '__main__':
     #                                save_file_as='it_dict')
     # print(word2vec_en['document'])
 
-    # true_dict = get_validation_set(VALIDATION_FILE, save=True)
-    # print(true_dict)
-    # print(len(true_dict.keys()))
+    true_dict = get_validation_set(VALIDATION_FILE, save=True)
+    print(true_dict)
+    print(len(true_dict.keys()))

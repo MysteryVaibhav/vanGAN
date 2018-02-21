@@ -5,7 +5,7 @@ import torch.utils.data
 from src.properties import *
 import torch.optim as optim
 from util import get_embeddings
-from model import Generator, Discriminator
+from src.model import Generator, Discriminator
 from timeit import default_timer as timer
 import torch.nn as nn
 
@@ -73,16 +73,21 @@ def train():
                 #  1A: Train D on real
                 # d_real_data = to_variable(d_real_data)  # Could add some
                 # noise to the real data later
-                noise = torch.normal(torch.ones(mini_batch_size,
-                                                 d_input_size) * 5,
-                                     torch.ones(mini_batch_size,
-                                                d_input_size) * 2)
-                d_real_data = to_variable(torch.mul(d_real_data, noise))
+                batch_size = d_real_data.size()[0]
+                # print("Batch size: ", batch_size)
+                # noise = torch.normal(torch.ones(batch_size,
+                #                                  d_input_size) * 5,
+                #                      torch.ones(batch_size,
+                #                                 d_input_size) * 2)
+                # print("Noise shape: ", noise.size())
+                # print("Real data shape: ", d_real_data.size())
+                # d_real_data = to_variable(torch.mul(d_real_data, noise))
                 # Could add some noise to the real data later
                 d_real_decision = d(d_real_data)
                 real_discriminator_decision = d_real_decision.data.cpu().numpy()
                 hit += np.sum(real_discriminator_decision < 0.5)
-                d_real_error = loss_fn(d_real_decision, to_variable(torch.zeros(mini_batch_size, 1)))  # ones = true
+                d_real_error = loss_fn(d_real_decision, to_variable(
+                    torch.zeros(batch_size, 1)))  # ones = true
                 d_real_error.backward()  # compute/store gradients, but don't change params
                 d_losses.append(d_real_error.data.cpu().numpy())
 
@@ -92,7 +97,7 @@ def train():
                 d_fake_decision = d(d_fake_data)  # Add noise later
                 fake_discriminator_decision = d_fake_decision.data.cpu().numpy()
                 hit += np.sum(fake_discriminator_decision >= 0.5)
-                d_fake_error = loss_fn(d_fake_decision, to_variable(torch.ones(mini_batch_size, 1)))  # zeros = fake
+                d_fake_error = loss_fn(d_fake_decision, to_variable(torch.ones(batch_size, 1)))  # zeros = fake
                 d_fake_error.backward()
                 d_losses.append(d_fake_error.data.cpu().numpy())
                 d_optimizer.step()  # Only optimizes D's parameters; changes based on stored gradients from backward()
@@ -111,15 +116,17 @@ def train():
 
                 gen_input = to_variable(gen_input)
                 g_fake_data = g(gen_input)
+                batch_size = g_fake_data.size()[0]
                 g_fake_decision = d(g_fake_data)  # Add noise later
                 g_error = loss_fn(g_fake_decision,
-                                  to_variable(torch.zeros(mini_batch_size, 1)))  # we want to fool, so pretend it's all genuine
+                                  to_variable(torch.zeros(batch_size, 1)))  #
+                #  we want to fool, so pretend it's all genuine
                 g_losses.append(g_error.data.cpu().numpy())
                 g_error.backward()
 
                 g_input_real = to_variable(next(it_iter))
                 real_decision = d(g_input_real)
-                g_real_error = loss_fn(real_decision, to_variable(torch.ones(mini_batch_size, 1)))
+                g_real_error = loss_fn(real_decision, to_variable(torch.ones(batch_size, 1)))
                 g_real_error.backward()
                 g_losses.append(g_real_error.data.cpu().numpy())
                 g_optimizer.step()  # Only optimizes G's parameters
