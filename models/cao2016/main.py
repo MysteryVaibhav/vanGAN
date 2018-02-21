@@ -8,6 +8,7 @@ import argparse
 import gzip
 import lzma
 import numpy as np
+import os
 import time
 
 from torch import nn
@@ -177,7 +178,7 @@ class NegativeSamplingLoss():
 
         # TODO: trick on cross-lingual negative sampling
 
-        return loss
+        return -loss
 
 
 class DistributionLoss():
@@ -237,6 +238,18 @@ def save_embeddings(filename, embs, i2w):
         f.write('{} {}\n'.format(*embs.shape))
         for w, emb in zip(i2w, embs):
             f.write('{} {}\n'.format(w, ' '.join(str(v) for v in emb)))
+
+def save_model(dirname, model, w2i):
+    try:
+        os.makedirs(dirname)
+    except:
+        pass
+    if verbose:
+        logger.info('Save a model to ' + dirname)
+    torch.save(model.state_dict(), os.path.join(dirname, 'weights.bin'))
+    with open(os.path.join(dirname, 'vocab.txt'), 'w') as f:
+        for w, _ in sorted(w2i.items(), key=lambda t: t[1]):
+            f.write(w + '\n')
 
 
 def main(args):
@@ -309,6 +322,8 @@ def main(args):
         # Save vectors
         embs = model.get_embeddings()
         save_embeddings(args.path_output, embs, corpus.i2w)
+        if args.dir_model:
+            save_model(args.dir_model, model, corpus.w2i)
 
     return 0
 
@@ -330,6 +345,8 @@ if __name__ == '__main__':
                         help='number of iterations')
     parser.add_argument('--seed', dest='random_seed', type=int, default=42,
                         help='random seed')
+    parser.add_argument('--model', dest='dir_model',
+                        required=True, help='path to a model directory')
     parser.add_argument('-o', '--output', dest='path_output',
                         required=True, help='path to an output file')
     parser.add_argument('--cuda', action='store_true', default=False,

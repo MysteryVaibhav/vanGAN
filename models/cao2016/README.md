@@ -9,7 +9,7 @@ conda install tqdm
 ```
 
 ```shell
-python main.py --src en:data/ukWaC/tokenized.1k.txt.xz --trg it:data/itWaC/tokenized.1k.txt.xz -o vectors.txt --batch-size 1024 -v
+python main.py --src en:data/ukWaC/tokenized.1k.txt.xz --trg it:data/itWaC/tokenized.1k.txt.xz -o vectors.txt --batch-size 1024 --iter 100 --model model/en.it/1k/ -v
 ```
 
 ```
@@ -48,4 +48,3 @@ model.most_similar('en:apple')
 ```
 
 You can get a better result if you use larger corpora.
-
