@@ -14,8 +14,9 @@ def save_word_vectors(file, dir=DATA_DIR, save_file_as='en'):
                 ignore_first_row = False
                 continue
             split_row = row.split(" ")
-            embeddings.append(np.array(split_row[1:]).astype(np.float))
-            keys.append(split_row[0])
+            if len(np.array(split_row[1:])) == 300:
+                embeddings.append(np.array(split_row[1:]).astype(np.float))
+                keys.append(split_row[0])
     np.save(DATA_DIR + save_file_as + '.npy', np.array(embeddings))
     np.save(DATA_DIR + save_file_as + '_key.npy', np.array(keys))
 
