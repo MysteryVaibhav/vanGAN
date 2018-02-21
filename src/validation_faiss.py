@@ -146,15 +146,5 @@ if __name__ == '__main__':
     k = 5
     # true_dict = get_validation_set(VALIDATION_FILE, dir=DATA_DIR, save=False)
     source_word_list = get_true_dict().keys()
-
-    _, xb = get_embeddings()
-    xb = np.float32(xb)
-    xq = test_function(source_word_list)
-    xq = np.float32(xq)
-    # print(np.multiply(xq[0], np.ones((1500, 300))))
-    # print(xb.shape)
-    knn_indices = CSLS_fast(k, xb, xq)
-    print(knn_indices)
-
-    # g = train()
-    # print(get_precision_k(k, g, source_word_list))
+    g = train()
+    print(get_precision_k(k, g, source_word_list))
