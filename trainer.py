@@ -7,6 +7,7 @@ import torch.optim as optim
 from util import get_embeddings
 from model import Generator, Discriminator
 from timeit import default_timer as timer
+#from validation_faiss import *
 
 
 def to_tensor(numpy_array):
@@ -28,7 +29,7 @@ def get_batch_data(en, it, g, detach=False):
     it_batch = it[random_it_indices[:mini_batch_size]]
     fake = g(to_variable(to_tensor(en_batch)))
     if detach:
-        fake.detach()
+        fake = fake.detach()
     real = to_variable(to_tensor(it_batch))
     input = torch.cat([fake, real], 0)
     output = to_variable(torch.FloatTensor(2 * mini_batch_size).zero_())
@@ -60,6 +61,7 @@ def train():
         g_loss_fn = g_loss_fn.cuda()
 
     d_acc = []
+    #true_dict = get_true_dict()
     for epoch in range(num_epochs):
         d_losses = []
         g_losses = []
@@ -77,7 +79,8 @@ def train():
                 d_loss.backward()  # compute/store gradients, but don't change params
                 d_losses.append(d_loss.data.cpu().numpy())
                 discriminator_decision = pred.data.cpu().numpy()
-                hit += np.sum(discriminator_decision < 0.5)
+                hit += np.sum(discriminator_decision[:mini_batch_size] > 0.5)
+                hit += np.sum(discriminator_decision[mini_batch_size:] <= 0.5)
                 d_optimizer.step()  # Only optimizes D's parameters; changes based on stored gradients from backward()
                 sys.stdout.write("[%d/%d] :: Discriminator Loss: %f \r" % (
                     mini_batch, len(en) // mini_batch_size, np.asscalar(np.mean(d_losses))))
@@ -90,7 +93,7 @@ def train():
 
                 input, output = get_batch_data(en, it, g, detach=False)
                 pred = d(input)
-                g_loss = d_loss_fn(pred, 1 - output)
+                g_loss = g_loss_fn(pred, 1 - output)
                 g_loss.backward()
                 g_losses.append(g_loss.data.cpu().numpy())
                 g_optimizer.step()  # Only optimizes G's parameters
@@ -104,6 +107,8 @@ def train():
               format(epoch, np.asscalar(np.mean(d_losses)), hit/total, np.asscalar(np.mean(g_losses)),
                      (timer() - start_time) / 60))
         torch.save(g.state_dict(), 'generator_weights_{}.t7'.format(epoch))
+        # if epoch % 5 == 0:
+        #     print(get_precision_k(10, g, true_dict))
     return g
 
 

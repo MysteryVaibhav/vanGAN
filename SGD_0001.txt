@@ -1,0 +1,16 @@
+Epoch 0 : Discriminator Loss: 0.69213, Discriminator Accuracy: 0.50763, Generator Loss: 0.69425, Time elapsed 2.75 mins
+0.0
+Epoch 1 : Discriminator Loss: 0.69065, Discriminator Accuracy: 0.65832, Generator Loss: 0.69571, Time elapsed 2.76 mins
+Epoch 2 : Discriminator Loss: 0.68915, Discriminator Accuracy: 0.87415, Generator Loss: 0.69723, Time elapsed 2.75 mins
+Epoch 3 : Discriminator Loss: 0.68761, Discriminator Accuracy: 0.95764, Generator Loss: 0.69881, Time elapsed 2.73 mins
+Epoch 4 : Discriminator Loss: 0.68598, Discriminator Accuracy: 0.98175, Generator Loss: 0.70048, Time elapsed 2.74 mins
+Epoch 5 : Discriminator Loss: 0.68426, Discriminator Accuracy: 0.98952, Generator Loss: 0.70231, Time elapsed 2.74 mins
+0.0
+Epoch 6 : Discriminator Loss: 0.68240, Discriminator Accuracy: 0.99258, Generator Loss: 0.70430, Time elapsed 2.74 mins
+Epoch 7 : Discriminator Loss: 0.68038, Discriminator Accuracy: 0.99428, Generator Loss: 0.70649, Time elapsed 2.74 mins
+Epoch 8 : Discriminator Loss: 0.67816, Discriminator Accuracy: 0.99532, Generator Loss: 0.70891, Time elapsed 2.74 mins
+Epoch 9 : Discriminator Loss: 0.67572, Discriminator Accuracy: 0.99587, Generator Loss: 0.71164, Time elapsed 2.73 mins
+Epoch 10 : Discriminator Loss: 0.67301, Discriminator Accuracy: 0.99644, Generator Loss: 0.71472, Time elapsed 2.71 mins
+0.0
+Epoch 11 : Discriminator Loss: 0.67000, Discriminator Accuracy: 0.99675, Generator Loss: 0.71818, Time elapsed 2.72 mins
+Epoch 12 : Discriminator Loss: 0.66666, Discriminator Accuracy: 0.99706, Generator Loss: 0.72215, Time elapsed 2.71 mins

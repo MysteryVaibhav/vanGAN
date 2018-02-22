@@ -1,3 +1,4 @@
+import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
@@ -6,6 +7,7 @@ class Generator(nn.Module):
     def __init__(self, input_size, hidden_size, output_size):
         super(Generator, self).__init__()
         self.map1 = nn.Linear(input_size, output_size, bias=False)
+        self.map1.weight.data.copy_(torch.diag(torch.ones(input_size)))
 
     def forward(self, x):
         return self.map1(x)
