@@ -10,7 +10,7 @@ class Generator(nn.Module):
         self.map1.weight.data.copy_(torch.diag(torch.ones(input_size)))
 
     def forward(self, x):
-        return self.map1(x)
+        return F.tanh(self.map1(x))
 
 
 class Discriminator(nn.Module):

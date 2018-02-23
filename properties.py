@@ -22,3 +22,4 @@ print_interval = 200
 d_steps = 5  # 'k' steps in the original GAN paper. Can put the discriminator on higher training freq than generator
 g_steps = 1
 smoothing = 0.2
+beta = 0.0001
