@@ -38,8 +38,8 @@ def get_batch_data(en, it, g, detach=False, forGenerator = False):
         real = to_variable(to_tensor(it_batch))
         input = torch.cat([fake, real], 0)
         output = to_variable(torch.FloatTensor(2 * mini_batch_size).zero_())
-        output[:mini_batch_size] = 1 - smoothing
-        output[mini_batch_size:] = smoothing
+        output[:mini_batch_size] = smoothing
+        output[mini_batch_size:] = 1-smoothing
     return input, output
 
 
@@ -55,9 +55,9 @@ def train():
     lr = d_learning_rate
     loss_fn = torch.nn.BCELoss()
     d_optimizer = optim.SGD(d.parameters(), lr=lr, weight_decay=0.95)
-    g_optimizer = optim.SGD(g.parameters(), lr=lr, weight_decay=0.95)
+    # g_optimizer = optim.SGD(g.parameters(), lr=lr, weight_decay=0.95)
     # d_optimizer = optim.Adam(d.parameters(), lr=lr, betas=optim_betas)
-    # g_optimizer = optim.Adam(g.parameters(), lr=lr, betas=optim_betas)
+    g_optimizer = optim.Adam(g.parameters(), lr=lr, betas=optim_betas)
 
     if torch.cuda.is_available():
         # Move the network and the optimizer to the GPU
@@ -78,14 +78,27 @@ def train():
                 d_optimizer.zero_grad()  # Reset the gradients
                 # noise = torch.normal(torch.ones(mini_batch_size, d_input_size) * 5,
                 #                      torch.ones(mini_batch_size, d_input_size) * 2)
+
                 input, output = get_batch_data(en, it, g, detach=True)
-                pred = d(input)
+                # print("Input: ", input)
+                l1, a1, l2, a2, l3, pred = d(input)
+                # print("Layer-1 Linear: ", l1)
+                # print("Layer-1 Activation: ", a1)
+                # print("Layer-2 Linear: ", l2)
+                # print("Layer-2 Activation: ", a2)
+                # print("Layer-3 Linear: ", l3)
+                # print("Pred: ", pred)
                 d_loss = loss_fn(pred, output)
                 d_loss.backward()  # compute/store gradients, but don't change params
                 d_losses.append(d_loss.data.cpu().numpy())
                 discriminator_decision = pred.data.cpu().numpy()
-                hit += np.sum(discriminator_decision[:mini_batch_size] > 0.5)
-                hit += np.sum(discriminator_decision[mini_batch_size:] <= 0.5)
+                # print("Fake data: ", discriminator_decision[
+                #                         :mini_batch_size])
+                # print("Real data: ", discriminator_decision[mini_batch_size:])
+                hit += np.sum(discriminator_decision[:mini_batch_size] < 0.5)
+                # print("Hits fake: ", hit)
+                hit += np.sum(discriminator_decision[mini_batch_size:] >= 0.5)
+                # print("Hits real: ", hit)
                 d_optimizer.step()  # Only optimizes D's parameters; changes based on stored gradients from backward()
                 sys.stdout.write("[%d/%d] :: Discriminator Loss: %f \r" % (
                     mini_batch, len(en) // mini_batch_size, np.asscalar(np.mean(d_losses))))
@@ -97,8 +110,8 @@ def train():
                 g_optimizer.zero_grad()
 
                 input, output = get_batch_data(en, it, g, detach=False, forGenerator=True)
-                pred = d(input)
-                g_loss = loss_fn(pred, 1 - output)
+                l1, a1, l2, a2, l3, pred = d(input)
+                g_loss = loss_fn(pred, output)
                 g_loss.backward()
                 g_losses.append(g_loss.data.cpu().numpy())
                 g_optimizer.step()  # Only optimizes G's parameters
@@ -111,7 +124,8 @@ def train():
         d_acc.append(hit / total)
         print(
             "Epoch {} : Discriminator Loss: {:.5f}, Discriminator Accuracy: {:.5f}, Generator Loss: {:.5f}, Time elapsed {:.2f} mins".
-            format(epoch, np.asscalar(np.mean(d_losses)), hit / total, np.asscalar(np.mean(g_losses)),
+            format(epoch, np.asscalar(np.mean(d_losses)), hit/total,
+                   np.asscalar(np.mean(g_losses)),
                    (timer() - start_time) / 60))
         torch.save(g.state_dict(), 'generator_weights_{}.t7'.format(epoch))
         torch.save(g.state_dict(), 'discriminator_weights_{}.t7'.format(epoch))
