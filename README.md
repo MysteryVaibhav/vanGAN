@@ -1,5 +1,5 @@
 # vanGAN
-11-747 Course Project: Bilingual Lexicon Induction
+11-747 Course Project: GAN implementation for Bilingual Lexicon Induction
 
 Requirements for compiling:
 ------------------------------
