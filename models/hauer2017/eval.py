@@ -57,11 +57,13 @@ def main(args):
             precisions.append(0.0)
         trg_preds = embs_trg.most_similar(
             positive=[model.src2trg(vec).data.numpy()], topn=args.topk)
+        print(', '.join(trgs) + ': ' + ', '.join(w for w, _ in trg_preds))
         correct = 0
         for trg_pred, _ in trg_preds:
             if trg_pred in trgs:
                 correct += 1
-        precisions.append(correct / float(args.topk))
+        # precisions.append(correct / float(args.topk))  # avg. precision@k (from the original definition)
+        precisions.append(min(correct, 1))  # avg. precision@k in this field
     print(np.mean(precisions))
     print('OOV: {}'.format(oov))
 

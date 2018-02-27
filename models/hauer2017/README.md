@@ -10,6 +10,17 @@ conda install gensim
 pip install editdistance
 ```
 
+## Files
+
+- corpora: [WaCky]()
+- word embeddings trained on the WaCky: [(Dinu et al., 2014)](http://clic.cimec.unitn.it/~georgiana.dinu/down/)
+    - save them as `data/embeddings/it/wacky.txt` (Italian) and `data/embeddings/en/wacky.txt` (UK English)
+- English word frequency counted on the WaCky corpus
+    - [it](https://l.facebook.com/l.php?u=https%3A%2F%2Fdrive.google.com%2Ffile%2Fd%2F1_rEJsI_6oygHP2t7EZLlcxhssqgMbxsD%2Fview%3Fusp%3Dsharing&h=ATO-4a7qsKwbsvL452b_ns0ndB5NCq4ZJJRUTm1DlqjWq7leb17PFmZC2coWZi2epVyEz-yaXmDq0ZI9lRcqAqqnF8QHTQXhbyTzQH-gElE9MyPZgfZ902a8YivQslZZzr2uvg)
+        - save it as `data/itWaC/vocab.txt`
+    - [en(uk)](https://l.facebook.com/l.php?u=https%3A%2F%2Fdrive.google.com%2Ffile%2Fd%2F1wbRw9v-s179yiN9NdrEr7cP7j71JQYLH%2Fview%3Fusp%3Dsharing&h=ATO-4a7qsKwbsvL452b_ns0ndB5NCq4ZJJRUTm1DlqjWq7leb17PFmZC2coWZi2epVyEz-yaXmDq0ZI9lRcqAqqnF8QHTQXhbyTzQH-gElE9MyPZgfZ902a8YivQslZZzr2uvg)
+        - save it as `data/ukWaC/vocab.txt`
+
 
 # Extract seed lexicon
 
@@ -27,7 +38,7 @@ python extract_seed_lexicon.py --src en:data/ukWaC/vocab.txt --trg it:data/itWaC
 python main.py --src data/embeddings/en/wacky.txt --trg data/embeddings/it/wacky.txt --lex data/lex.en.it.m10000.p100.d25.tsv -o models/en.it/it25.bin  -v
 ```
 
-## Example result
+## Log (example)
 
 The following log shows extracted translation pairs at each iteration.
 
@@ -620,7 +631,7 @@ The following log shows extracted translation pairs at each iteration.
 2018-02-23 20:57:51,783/Trans[INFO]: assistance-autonomia 0.464
 2018-02-23 20:57:51,783/Trans[INFO]: digital-digitale 0.463
 2018-02-23 20:57:52,477/Trans[INFO]: [2] loss: 7.88378
-100%|█████████████████████████████████████████████████| 1560/1560 [02:37<00:00,  9.90it/s]
+
 2018-02-23 21:00:30,206/Trans[INFO]: changing-modificazioni 0.530
 2018-02-23 21:00:30,208/Trans[INFO]: visual-cinema 0.530
 2018-02-23 21:00:30,209/Trans[INFO]: unless-eventualmente 0.497
@@ -870,8 +881,12 @@ The following log shows extracted translation pairs at each iteration.
 ```shell
 python eval.py data/eval/OPUS.en.it.europarl.txt --src ~/devel/bootstrapping-bwe/data/embeddings/en/wacky.txt --trg ~/devel/bootstrapping-bwe/data/embeddings/it/wacky.txt -m models/it25.bin -k 1 -v
 # 0.014 (OOV=0)
+
 python eval.py data/eval/OPUS.en.it.europarl.txt --src ~/devel/bootstrapping-bwe/data/embeddings/en/wacky.txt --trg ~/devel/bootstrapping-bwe/data/embeddings/it/wacky.txt -m models/it25.bin -k 5 -v
 # 0.00746666666667 (OOV=0)
+
+python eval.py data/eval/OPUS.en.it.europarl.txt --src ~/devel/bootstrapping-bwe/data/embeddings/en/wacky.txt --trg ~/devel/bootstrapping-bwe/data/embeddings/it/wacky.txt -m models/it25.bin -k 10 -v
+# 0.0473333333333 (OOV=0)
 
 
 python eval.py data/eval/MUSE.en.it.5000-6500.txt --src ~/devel/bootstrapping-bwe/data/embeddings/en/wacky.txt --trg ~/devel/bootstrapping-bwe/data/embeddings/it/wacky.txt -m models/it25.bin -k 1 -v
