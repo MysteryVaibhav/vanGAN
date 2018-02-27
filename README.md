@@ -1,7 +1,7 @@
 # vanGAN
 11-747 Course Project: Bilingual Lexicon Induction
 
-Requirements before compiling:
+Requirements for compiling:
 ------------------------------
 - Edit the properties file to set the path of the data directory (Download data from http://clic.cimec.unitn.it/~georgiana.dinu/down/)
 - Make sure you have these 3 files in the data directory :
@@ -10,7 +10,25 @@ Requirements before compiling:
     - OPUS_en_it_europarl_test.txt
 - Follow the steps below to install Faiss (library for efficient similarity search on GPU)
 
-
+Script to compile:
+------------------------------
+First run util.py to create the .npy files for embeddings.
+```
+$ python util.py
+Reading english word embeddings...
+Reading italian word embeddings...
+Creating word vectors for both languages...
+Reading validation file...
+Done !!
+```
+Run train_validate.py to start training. In the end it will calculate P@k, and generate a plot of discriminator accuracy, generator loss vs epochs 
+```
+$ python train_validate.py
+Epoch 0 : Discriminator Loss: 0.67081, Discriminator Accuracy: 0.63142, Generator Loss: 0.73843, Time elapsed 2.72 mins
+Epoch 1 : Discriminator Loss: 0.67737, Discriminator Accuracy: 0.63803, Generator Loss: 0.71354, Time elapsed 2.71 mins
+P@5 : 0.0
+```
+![alt text](https://github.com/MysteryVaibhav/vanGAN/blob/gan/src/d_g.png)
 
 Architecture choices (https://arxiv.org/abs/1710.04087):
 ------------------------------
