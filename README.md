@@ -1,21 +1,19 @@
 # vanGAN
 11-747 Course Project: Bilingual Lexicon Induction
 
-Steps for compiling:
+Requirements before compiling:
+------------------------------
 - Edit the properties file to set the path of the data directory (Download data from http://clic.cimec.unitn.it/~georgiana.dinu/down/)
-- Run the util file once, it reads the datafiles and creates a numpy array for faster access
-- Run the trainer to start training
-- (For validation) (a) Uncomment segment of util.py code and run it once. (b) Run validation_faiss.py file.
+- Make sure you have these 3 files in the data directory :
+    - EN.200K.cbow1_wind5_hs0_neg10_size300_smpl1e-05.txt
+    - IT.200K.cbow1_wind5_hs0_neg10_size300_smpl1e-05.txt
+    - OPUS_en_it_europarl_test.txt
+- Follow the steps below to install Faiss (library for efficient similarity search on GPU)
 
-Things to do:
-- Add initilization and update constraints for the parameters (orthogonality)
-- Can add gradient cilpping if training is erratic
-- Add noise while training the generator and discriminator
-- Change the simple binary cross entropy loss to something more complicated
-- Add method to retrieve the nearest neighbours from other language (trivial if using KNN)
-- Remove properties file and add everything to program arguments (can be deferred for now)
 
-Architecture choices (Facebook paper):
+
+Architecture choices (https://arxiv.org/abs/1710.04087):
+------------------------------
 - Discriminator:
     (a) 2 hidden layers, 2048 size each, Leaky-ReLU activation functions
     (b) Input corrupted with a dropout rate of 0.1
@@ -31,7 +29,8 @@ Architecture choices (Facebook paper):
     (d) Use this average as a validation metric
 
 Installing Faiss (on Linux GPU):
-- Delete the faiss_master package from the repo.
+------------------------------
+- Delete the faiss package from the repo.
 - Clone the Faiss repository inside vanGAN: git clone https://github.com/facebookresearch/faiss.git
 - Step-1: C++ Compilation:
     - Open the MakeFile. Set MAKEFILE_INC=example_makefiles/makefile.inc.Linux
