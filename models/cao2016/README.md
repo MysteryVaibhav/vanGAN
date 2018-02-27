@@ -2,11 +2,20 @@
 PyTorch implementation of "A Distribution-based Model to Learn Bilingual Word Embeddings" (Cao et al., COLING2016)
 
 
+# Setup
+
 ```shell
 conda install pytorch -c pytorch -y
 conda install gensim
 conda install tqdm
 ```
+
+## Data
+
+- [WaCKy corpora](http://wacky.sslmit.unibo.it/doku.php?id=corpora)
+
+
+# Example
 
 ```shell
 python main.py --src en:data/ukWaC/tokenized.1k.txt.xz --trg it:data/itWaC/tokenized.1k.txt.xz -o vectors.txt --batch-size 1024 --iter 100 --model model/en.it/1k/ -v
