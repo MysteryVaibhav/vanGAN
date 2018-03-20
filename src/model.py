@@ -7,9 +7,10 @@ class Generator(nn.Module):
     def __init__(self, input_size, hidden_size, output_size):
         super(Generator, self).__init__()
         self.map1 = nn.Linear(input_size, output_size, bias=False)
+        nn.init.orthogonal(self.map1.weight)
 
     def forward(self, x):
-        return F.tanh(self.map1(x))
+        return self.map1(x)
 
 
 class Discriminator(nn.Module):
@@ -24,6 +25,6 @@ class Discriminator(nn.Module):
         self.map3 = nn.Linear(hidden_size, output_size)
 
     def forward(self, x):
-        x = self.activation1(self.map1(self.drop1(x)))
-        x = self.activation2(self.map2(self.drop2(x)))
+        x = self.drop1(self.activation1(self.map1(x)))
+        x = self.drop2(self.activation2(self.map2(x)))
         return F.sigmoid(self.map3(x)).view(-1)
