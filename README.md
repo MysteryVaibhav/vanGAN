@@ -14,7 +14,7 @@ Requirements for compiling:
     ```
     # English fastText Wikipedia embeddings (~6G)
     curl -Lo data/wiki.en.vec https://s3-us-west-1.amazonaws.com/fasttext-vectors/wiki.en.vec
-    # Spanish fastText Wikipedia embeddings (~2G)
+    # Italian fastText Wikipedia embeddings (~2G)
     curl -Lo data/wiki.it.vec https://s3-us-west-1.amazonaws.com/fasttext-vectors/wiki.it.vec
     ```
 - Follow the steps below to install Faiss (library for efficient similarity search on GPU)
