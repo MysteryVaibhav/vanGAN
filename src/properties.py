@@ -1,7 +1,9 @@
-DATA_DIR = '/home/vvaibhav/vanGAN/data/'
+import os
+
+
+DATA_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'data/')
 EN_WORD_TO_VEC = 'wiki.en.vec' #'EN.200K.cbow1_wind5_hs0_neg10_size300_smpl1e-05.txt'
 IT_WORD_TO_VEC = 'wiki.it.vec' #'IT.200K.cbow1_wind5_hs0_neg10_size300_smpl1e-05.txt'
-#EVAL_EUROPARL = 'OPUS_en_it_europarl_test.txt'
 VALIDATION_FILE = 'en-it.5000-6500.txt' #'OPUS_en_it_europarl_test.txt'
 TRAIN_FILE = 'OPUS_en_it_europarl_train_5K.txt'
 
