@@ -895,3 +895,9 @@ python eval.py data/eval/MUSE.en.it.5000-6500.txt --src ~/devel/bootstrapping-bw
 # 0.00665335994677 (OOV=3)
 ```
 
+
+# Reference
+
+```
+Bradley Hauer, Garrett Nicolai, and Grzegorz Kondrak. 2017. Bootstrapping Unsupervised Bilingual Lexicon Induction. In Proceedings of the 15th Conference of the European Chapter of the Association for Computational Linguistics (EACL), pages 619–624, Valencia, Spain, April. Association for Computational Linguistics.
+```
