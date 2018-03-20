@@ -1,12 +1,18 @@
 import numpy as np
 import codecs
-from src.properties import *
+from properties import *
 
+
+def normalize(v):
+    norm = np.linalg.norm(v)
+    if norm == 0:
+        return v
+    return v / norm
 
 # Returns a mapping of words and their embedding
 def get_word_vectors(file, dir=DATA_DIR, save=False, save_file_as='en'):
-    word2vec = {}
     embeddings = []
+    keys = []
     with codecs.open(dir + file, 'r', encoding='utf-8', errors='ignore') as f:
         ignore_first_row = True
         for row in f.readlines():
@@ -14,12 +20,11 @@ def get_word_vectors(file, dir=DATA_DIR, save=False, save_file_as='en'):
                 ignore_first_row = False
                 continue
             split_row = row.split(" ")
-            word2vec[split_row[0]] = np.array(split_row[1:]).astype(np.float)
-            if save and len(word2vec[split_row[0]]) == 300:
-                embeddings.append(word2vec[split_row[0]])
-    if save:
-        np.save(DATA_DIR + save_file_as + '.npy', np.array(embeddings))
-    return word2vec
+            if len(np.array(split_row[1:])) == 300:
+                embeddings.append(normalize(np.array(split_row[1:]).astype(np.float)))
+                keys.append(split_row[0])
+    np.save(DATA_DIR + save_file_as + '.npy', np.array(embeddings))
+    return np.array(embeddings)
 
 
 def get_word_vectors_dicts(file, dir=DATA_DIR, save=False,
@@ -43,7 +48,7 @@ def get_word_vectors_dicts(file, dir=DATA_DIR, save=False,
 def get_validation_set(file, dir=DATA_DIR, save=False,
                        save_file_as='validation'):
     true_dict = {}
-    with open(dir + file, 'r', encoding='utf-8', errors='ignore') as f:
+    with codecs.open(dir + file, 'r', encoding='utf-8', errors='ignore') as f:
         rows = f.readlines()
         for row in rows:
             split_row = row.split(" ")
@@ -73,19 +78,19 @@ def get_true_dict():
 
 
 if __name__ == '__main__':
-    # Sanity check
-    # word2vec_en = get_word_vectors(EN_WORD_TO_VEC, save=True, save_file_as='en')
-    # word2vec_it = get_word_vectors(IT_WORD_TO_VEC, save=True, save_file_as='it')
-    # print(word2vec_en['document'])
+    print("Reading english word embeddings...")
+    word2vec_en = get_word_vectors(EN_WORD_TO_VEC, save=True, save_file_as='en')
 
-    # Uncomment the following and run once if you wish to run validation:
+    print("Reading italian word embeddings...")
+    word2vec_it = get_word_vectors(IT_WORD_TO_VEC, save=True, save_file_as='it')
 
-    # word2vec_en = get_word_vectors_dicts(EN_WORD_TO_VEC, save=True,
-    #                                save_file_as='en_dict')
-    # word2vec_it = get_word_vectors_dicts(IT_WORD_TO_VEC, save=True,
-    #                                save_file_as='it_dict')
-    # print(word2vec_en['document'])
-
+    print("Creating word vectors for both languages...")
+    word2vec_en = get_word_vectors_dicts(EN_WORD_TO_VEC, save=True,
+                                    save_file_as='en_dict')
+    word2vec_it = get_word_vectors_dicts(IT_WORD_TO_VEC, save=True,
+                                    save_file_as='it_dict')
+    
+    print("Reading validation file...")
     true_dict = get_validation_set(VALIDATION_FILE, save=True)
-    print(true_dict)
-    print(len(true_dict.keys()))
+    
+    print("Done !!")
