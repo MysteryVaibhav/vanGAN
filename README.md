@@ -3,12 +3,22 @@
 
 Requirements for compiling:
 ------------------------------
-- Edit the properties file to set the path of the data directory (Download data from http://clic.cimec.unitn.it/~georgiana.dinu/down/)
-- Make sure you have these 3 files in the data directory :
-    - EN.200K.cbow1_wind5_hs0_neg10_size300_smpl1e-05.txt
-    - IT.200K.cbow1_wind5_hs0_neg10_size300_smpl1e-05.txt
-    - OPUS_en_it_europarl_test.txt
+- If using wackyDataset:
+    - (Download data from http://clic.cimec.unitn.it/~georgiana.dinu/down/)
+    - Make sure you have these 3 files in the data directory :
+        - EN.200K.cbow1_wind5_hs0_neg10_size300_smpl1e-05.txt
+        - IT.200K.cbow1_wind5_hs0_neg10_size300_smpl1e-05.txt
+        - OPUS_en_it_europarl_test.txt
+- If using wiki fastText embeddings:
+    - Download data using curl from 'src' directory:
+    ```
+    # English fastText Wikipedia embeddings (~6G)
+    curl -Lo data/wiki.en.vec https://s3-us-west-1.amazonaws.com/fasttext-vectors/wiki.en.vec
+    # Spanish fastText Wikipedia embeddings (~2G)
+    curl -Lo data/wiki.it.vec https://s3-us-west-1.amazonaws.com/fasttext-vectors/wiki.it.vec
+    ```
 - Follow the steps below to install Faiss (library for efficient similarity search on GPU)
+  or simply use "conda install faiss-gpu -c pytorch" [Note conda install will only work with cuda >= 9.0]
 
 Script to compile:
 ------------------------------
