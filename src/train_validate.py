@@ -2,10 +2,9 @@ import sys
 sys.path.append('../')
 from faiss import faiss
 import numpy as np
-from src.util import get_embeddings_dicts, get_validation_set, \
-    get_embeddings, get_true_dict
+from src.util import *
 from src.properties import *
-from src.trainer import train, to_tensor, to_variable
+#from src.trainer import train, to_tensor, to_variable
 import json
 
 
