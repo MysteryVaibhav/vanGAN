@@ -17,6 +17,10 @@ Requirements for compiling:
     # Italian fastText Wikipedia embeddings (~2G)
     curl -Lo data/wiki.it.vec https://s3-us-west-1.amazonaws.com/fasttext-vectors/wiki.it.vec
     ```
+    - Download the test file in 'data' directory
+    ```
+    wget https://s3.amazonaws.com/arrival/dictionaries/en-it.5000-6500.txt
+    ```
 - Follow the steps below to install Faiss (library for efficient similarity search on GPU)
   or simply use "conda install faiss-gpu -c pytorch" [Note conda install will only work with cuda >= 9.0]
 
