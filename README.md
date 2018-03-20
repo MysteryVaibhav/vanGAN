@@ -57,6 +57,16 @@ Architecture choices (https://arxiv.org/abs/1710.04087):
     (b) Use CSLS to generate a translation for each of them
     (c) Compute the average cosine similarity between these deemed translations
     (d) Use this average as a validation metric
+    
+Initial Results on Fastext embeddings:
+------------------------------
+After 50 epochs:
+P@5 : 0.0006666666666666666
+P@10 : 0.0006666666666666666
+P@100 : 0.0013333333333333333
+P@1000 : 0.004666666666666667
+P@10000 : 0.050666666666666665
+P@100000 : 0.48333333333333334
 
 Installing Faiss (on Linux GPU):
 ------------------------------
