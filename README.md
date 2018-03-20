@@ -10,15 +10,13 @@ Requirements for compiling:
         - IT.200K.cbow1_wind5_hs0_neg10_size300_smpl1e-05.txt
         - OPUS_en_it_europarl_test.txt
 - If using wiki fastText embeddings:
-    - Download data using curl from 'src' directory:
+    - Download data in the 'data' directory:
     ```
     # English fastText Wikipedia embeddings (~6G)
-    curl -Lo data/wiki.en.vec https://s3-us-west-1.amazonaws.com/fasttext-vectors/wiki.en.vec
+    curl -Lo wiki.en.vec https://s3-us-west-1.amazonaws.com/fasttext-vectors/wiki.en.vec
     # Italian fastText Wikipedia embeddings (~2G)
-    curl -Lo data/wiki.it.vec https://s3-us-west-1.amazonaws.com/fasttext-vectors/wiki.it.vec
-    ```
-    - Download the test file in 'data' directory
-    ```
+    curl -Lo wiki.it.vec https://s3-us-west-1.amazonaws.com/fasttext-vectors/wiki.it.vec
+    # Test file containing translations for 1500 en words
     wget https://s3.amazonaws.com/arrival/dictionaries/en-it.5000-6500.txt
     ```
 - Follow the steps below to install Faiss (library for efficient similarity search on GPU)
