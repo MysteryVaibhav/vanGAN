@@ -1,4 +1,3 @@
-# dist-based-model4bwe
 PyTorch implementation of "A Distribution-based Model to Learn Bilingual Word Embeddings" (Cao et al., COLING2016)
 
 
@@ -57,3 +56,10 @@ model.most_similar('en:apple')
 ```
 
 You can get a better result if you use larger corpora.
+
+
+# Reference
+
+```
+Hailong Cao, Tiejun Zhao, Shu Zhang, and Yao Meng. 2016. A Distribution-based Model to Learn Bilingual Word Embeddings. In Proceedings of the 26th International Conference on Computational Linguistics (COLING), pages 1818–1827, Osaka, Japan, December. The COLING 2016 Organizing Committee.
+```
