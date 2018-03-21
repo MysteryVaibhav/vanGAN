@@ -13,26 +13,19 @@ import matplotlib.pyplot as plt
 #from train_validate import get_precision_k
 
 
-def get_batch_data(en, it, g, detach=False, forGenerator = False):
-    en_len = en.shape[0]
-    it_len = it.shape[0]
-    random_en_indices = np.random.permutation(en_len)
-    random_it_indices = np.random.permutation(it_len)
+def get_batch_data(en, it, g, detach=False):
+    random_en_indices = np.random.permutation(most_frequent_sampling_size)
+    random_it_indices = np.random.permutation(most_frequent_sampling_size)
     en_batch = en[random_en_indices[:mini_batch_size]]
     it_batch = it[random_it_indices[:mini_batch_size]]
     fake = g(to_variable(to_tensor(en_batch)))
     if detach:
         fake = fake.detach()
-    if forGenerator:
-        input = fake
-        output = to_variable(torch.FloatTensor(mini_batch_size).zero_())
-        output[:] = smoothing
-    else:
-        real = to_variable(to_tensor(it_batch))
-        input = torch.cat([fake, real], 0)
-        output = to_variable(torch.FloatTensor(2 * mini_batch_size).zero_())
-        output[:mini_batch_size] = smoothing
-        output[mini_batch_size:] = 1 - smoothing
+    real = to_variable(to_tensor(it_batch))
+    input = torch.cat([fake, real], 0)
+    output = to_variable(torch.FloatTensor(2 * mini_batch_size).zero_())
+    output[:mini_batch_size] = smoothing
+    output[mini_batch_size:] = 1 - smoothing
     return input, output
 
 
@@ -49,7 +42,7 @@ def train():
     en, it = get_embeddings()   # Vocab x Embedding_dimension
 
     # Create models
-    g = Generator(input_size=g_input_size, hidden_size=g_hidden_size, output_size=g_output_size)
+    g = Generator(input_size=g_input_size, output_size=g_output_size)
     d = Discriminator(input_size=d_input_size, hidden_size=d_hidden_size, output_size=d_output_size)
 
     #init_xavier(g)
@@ -57,8 +50,8 @@ def train():
     
     # Define loss function and optimizers
     loss_fn = torch.nn.BCELoss()
-    d_optimizer = optim.SGD(d.parameters(), lr=d_learning_rate, weight_decay=0.001)
-    g_optimizer = optim.SGD(g.parameters(), lr=g_learning_rate, weight_decay=0.001)
+    d_optimizer = optim.SGD(d.parameters(), lr=d_learning_rate)
+    g_optimizer = optim.SGD(g.parameters(), lr=g_learning_rate)
 
     if torch.cuda.is_available():
         # Move the network and the optimizer to the GPU
@@ -76,7 +69,7 @@ def train():
             hit = 0
             total = 0
             start_time = timer()
-            for mini_batch in range(0, len(en) // mini_batch_size):
+            for mini_batch in range(0, iters_in_epoch // mini_batch_size):
                 for d_index in range(d_steps):
                     d_optimizer.zero_grad()  # Reset the gradients
                     input, output = get_batch_data(en, it, g, detach=True)
@@ -93,7 +86,7 @@ def train():
                     clip(d, clip_value)
 
                     sys.stdout.write("[%d/%d] :: Discriminator Loss: %f \r" % (
-                        mini_batch, len(en) // mini_batch_size, np.asscalar(np.mean(d_losses))))
+                        mini_batch, iters_in_epoch // mini_batch_size, np.asscalar(np.mean(d_losses))))
                     sys.stdout.flush()
 
                 total += 2*mini_batch_size*d_steps
@@ -102,7 +95,7 @@ def train():
                     # 2. Train G on D's response (but DO NOT train D on these labels)
                     g_optimizer.zero_grad()
 
-                    input, output = get_batch_data(en, it, g, detach=False, forGenerator=True)
+                    input, output = get_batch_data(en, it, g, detach=False)
                     pred = d(input)
                     g_loss = loss_fn(pred, 1 - output) # -torch.log(pred).mean()
                     g_loss.backward()
@@ -113,7 +106,7 @@ def train():
                     orthogonalize(g.map1.weight.data)
 
                     sys.stdout.write("[%d/%d] ::                                     Generator Loss: %f \r" % (
-                        mini_batch, len(en) // mini_batch_size, np.asscalar(np.mean(g_losses))))
+                        mini_batch, iters_in_epoch // mini_batch_size, np.asscalar(np.mean(g_losses))))
                     sys.stdout.flush()
 
             d_acc_epochs.append(hit / total)
@@ -121,9 +114,10 @@ def train():
             print("Epoch {} : Discriminator Loss: {:.5f}, Discriminator Accuracy: {:.5f}, Generator Loss: {:.5f}, Time elapsed {:.2f} mins".
                   format(epoch, np.asscalar(np.mean(d_losses)), hit/total, np.asscalar(np.mean(g_losses)),
                          (timer() - start_time) / 60))
-            if (epoch + 1) % 5 == 0:
-                #print("P@5: {}".format(get_precision_k(5, g, true_dict)))
+            if (epoch + 1) % print_every == 0:
                 torch.save(g.state_dict(), 'generator_weights_{}.t7'.format(epoch))
+                torch.save(d.state_dict(), 'discriminator_weights_{}.t7'.format(epoch))
+                #print("P@5: {}".format(get_precision_k(5, g, true_dict)))
         # Save the plot for discriminator accuracy and generator loss
         fig = plt.figure()
         plt.plot(range(0, num_epochs), d_acc_epochs, color='b', label='discriminator')
@@ -135,6 +129,7 @@ def train():
     except KeyboardInterrupt:
         print("Interrupted.. saving model !!!")
         torch.save(g.state_dict(), 'g_model_interrupt.t7')
+        torch.save(d.state_dict(), 'd_model_interrupt.t7')
     return g
 
 
