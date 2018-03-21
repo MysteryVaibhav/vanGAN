@@ -60,7 +60,11 @@ Architecture choices (https://arxiv.org/abs/1710.04087):
     
 Initial Results on Fastext embeddings:
 ------------------------------
-After 4 epochs (stopped):
+Stopped after 4 epochs.
+For the best model:
+- P@1 : 0.4066666666666667
+- P@5 : 0.6153333333333333
+- P@10 :  0.684
 ```
 Epoch 0 : Discriminator Loss: 0.41995, Discriminator Accuracy: 0.93694, Generator Loss: 1.82615, Time elapsed 105.70 mins
 P@5: 0.5353333333333333
