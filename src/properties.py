@@ -9,7 +9,6 @@ TRAIN_FILE = 'OPUS_en_it_europarl_train_5K.txt'
 
 # Model Hyper-Parameters
 g_input_size = 300     # Random noise dimension coming into generator, per output vector
-g_hidden_size = 50   # Generator complexity
 g_output_size = 300    # size of generated output vector
 d_input_size = 300   # cardinality of distributions
 d_hidden_size = 2048   # Discriminator complexity
@@ -22,8 +21,13 @@ num_epochs = 50
 d_steps = 5  # 'k' steps in the original GAN paper. Can put the discriminator on higher training freq than generator
 g_steps = 1
 smoothing = 0.1
-beta = 0.01
+beta = 0.001
 clip_value = 0
+
+# Training
+iters_in_epoch = 1000000
+most_frequent_sampling_size = 75000
+print_every = 1
 
 # Validation
 K = 5
