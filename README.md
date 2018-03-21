@@ -60,13 +60,18 @@ Architecture choices (https://arxiv.org/abs/1710.04087):
     
 Initial Results on Fastext embeddings:
 ------------------------------
-After 50 epochs:
-- P@5 : 0.0006666666666666666
-- P@10 : 0.0006666666666666666
-- P@100 : 0.0013333333333333333
-- P@1000 : 0.004666666666666667
-- P@10000 : 0.050666666666666665
-- P@100000 : 0.48333333333333334
+After 4 epochs (stopped):
+```
+Epoch 0 : Discriminator Loss: 0.41995, Discriminator Accuracy: 0.93694, Generator Loss: 1.82615, Time elapsed 105.70 mins
+P@5: 0.5353333333333333
+Epoch 1 : Discriminator Loss: 0.37931, Discriminator Accuracy: 0.97755, Generator Loss: 2.00314, Time elapsed 114.67 mins
+P@5: 0.6153333333333333
+Epoch 2 : Discriminator Loss: 0.36378, Discriminator Accuracy: 0.99002, Generator Loss: 2.04785, Time elapsed 139.61 mins
+P@5: 0.468
+Epoch 3 : Discriminator Loss: 0.35603, Discriminator Accuracy: 0.99487, Generator Loss: 2.06284, Time elapsed 150.38 mins
+P@5: 0.37466666666666665
+[9562/31250] :: Discriminator Loss: 0.352862     Generator Loss: 2.067446
+```
 
 Installing Faiss (on Linux GPU):
 ------------------------------
