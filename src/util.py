@@ -9,6 +9,7 @@ def normalize(v):
         return v
     return v / norm
 
+
 def to_tensor(numpy_array):
     return torch.from_numpy(numpy_array).float()
 
