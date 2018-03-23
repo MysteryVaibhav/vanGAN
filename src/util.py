@@ -65,8 +65,7 @@ def get_word_vectors_dicts(file, dir=DATA_DIR, save=False,
     return word2vec
 
 
-def get_validation_set(file, dir=DATA_DIR, save=False,
-                       save_file_as='validation'):
+def get_validation_set(file, dir=DATA_DIR, save=False, save_file_as='validation'):
     true_dict = {}
     with open(dir + file, 'r', encoding='utf-8') as f:
         rows = f.readlines()
@@ -89,8 +88,7 @@ def get_embeddings():
 
 
 def get_embeddings_dicts():
-    return np.load(DATA_DIR + 'en_dict.npy').item(), np.load(DATA_DIR +
-                                                        'it_dict.npy').item()
+    return np.load(DATA_DIR + 'en_dict.npy').item(), np.load(DATA_DIR + 'it_dict.npy').item()
 
 
 def get_true_dict():

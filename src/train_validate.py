@@ -1,11 +1,20 @@
-import sys
-sys.path.append('../')
-from faiss import faiss
+import platform
 import numpy as np
-from src.util import *
-from src.properties import *
-#from src.trainer import train, to_tensor, to_variable
+from util import *
+from properties import *
 import json
+from trainer import *
+import os
+
+op_sys = platform.system()
+if op_sys == 'Darwin':
+    from faiss_master import faiss
+elif op_sys == 'Linux':
+    import faiss
+else:
+    raise 'Operating system not supported: %s' % op_sys
+
+os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 
 
 def calculate_precision(true_dict, predicted_dict):
@@ -41,69 +50,38 @@ def get_knn_indices(k, xb, xq):
     distances, knn_indices = index.search(xq, k)
     return distances, knn_indices
 
-
-def get_knn_indices_fast(k, xb, xq):
-    nlist = 100
-    quantizer = faiss.IndexFlatL2(g_input_size)
-    index = faiss.IndexIVFFlat(quantizer, g_input_size, nlist, faiss.METRIC_L2)
-
-    assert not index.is_trained
-    index.train(xb)
-    assert index.is_trained
-
-    index.add(xb)
-    distances, knn_indices = index.search(xq, k)
-    return distances, knn_indices
-
-
-def CSLS(k, xb, xq):
-    print("Here-1")
-    distances, _ = get_knn_indices(k, xb, xq)
-    r_source = np.average(distances, axis=0)
-    print("Here-2")
-    distances, _ = get_knn_indices(k, xb, xb)
-    r_target = np.average(distances, axis=0)
-    print("Here-3")
-
-    n_source = np.shape(r_source)[0]
-    n_target = np.shape(r_target)[0]
-    ones_matrix = np.ones((n_target, g_input_size))
-    knn_indices = np.zeros((n_source, k))
-
-    for i in range(n_source):
-        print("i: ", i)
-        r = np.multiply(r_source[i], ones_matrix)
-        m1 = np.multiply(xq[i], ones_matrix)
-        c = cosine_similarity(m1, xb)
-        csls = 2*c - r - r_target
-        k_best_indices = np.argsort(csls)[-1 * k:]
-        knn_indices[i] = k_best_indices
-
-    return knn_indices
+# def get_knn_indices_fast(k, xb, xq):
+#     nlist = 100
+#     quantizer = faiss.IndexFlatIP(g_input_size)
+#     index = faiss.IndexFlatIP(quantizer, g_input_size, nlist, faiss.METRIC_L2)
+#
+#     assert not index.is_trained
+#     index.train(xb)
+#     assert index.is_trained
+#
+#     index.add(xb)
+#     distances, knn_indices = index.search(xq, k)
+#     return distances, knn_indices
 
 
 def CSLS_fast(k, xb, xq):
-    distances, _ = get_knn_indices_fast(k, xb, xq)
+    distances, _ = get_knn_indices(k, xb, xq)
     r_source = np.average(distances, axis=1)
-    distances, _ = get_knn_indices_fast(k, xb, xb)
+    distances, _ = get_knn_indices(k, xq, xb)
     r_target = np.average(distances, axis=1)
 
     n_source = np.shape(r_source)[0]
-    print(np.shape(r_source))
     n_target = np.shape(r_target)[0]
-    print(np.shape(r_target))
-    ones_matrix = np.ones((n_target, g_input_size))
-    ones_vector = np.ones((n_target, 1))
-    knn_indices = np.zeros((n_source, k))
 
+    knn_indices = []
     for i in range(n_source):
-        print("i: ", i)
-        r = np.multiply(r_source[i], ones_vector)
-        m1 = np.multiply(xq[i], ones_matrix)
-        c = cosine_similarity(m1, xb)
-        csls = 2*c - r - r_target
-        k_best_indices = np.argsort(csls)[-1 * k:]
-        knn_indices[i] = k_best_indices
+        print(i)
+        src_wemb = xq[i, :]
+        c = np.sum(np.multiply(np.repeat(src_wemb[np.newaxis, :],  n_target, axis=0), xb), axis=1)
+        rs = np.repeat(r_source[i],  n_target, axis=0)
+        csls = 2*c - rs - r_target
+        knn_indices.append(np.argsort(csls)[-k:])
+        print(knn_indices[i])
 
     return knn_indices
 
@@ -118,6 +96,10 @@ def cosine_similarity(m1, m2):
 def get_mapped_embeddings(g, source_word_list):
     source_vec_dict, target_vec_dict = get_embeddings_dicts()
     target_word_list = list(target_vec_dict.keys())
+
+    # word_tensors = to_tensor(np.array([source_vec_dict[source_word] for source_word in source_word_list]).astype(float))
+    # mapped_embeddings = g(to_variable(word_tensors)).data.cpu().numpy()
+
     mapped_embeddings = np.zeros((len(source_word_list), g_input_size))
     for (i, source_word) in enumerate(source_word_list):
         word_tensor = to_tensor(np.array(source_vec_dict[source_word]).astype(float))
@@ -125,7 +107,7 @@ def get_mapped_embeddings(g, source_word_list):
     return mapped_embeddings, target_word_list
 
 
-def get_precision_k(k, g, true_dict):
+def get_precision_k(k, g, true_dict, method='csls'):
     source_word_list = true_dict.keys()
 
     _, xb = get_embeddings()
@@ -138,7 +120,13 @@ def get_precision_k(k, g, true_dict):
     row_sum = np.linalg.norm(xq, axis=1)
     xq = xq/row_sum[:, np.newaxis]
 
-    _, knn_indices = get_knn_indices(k, xb, xq)
+    if method == 'nn':
+        _, knn_indices = get_knn_indices(k, xb, xq)
+    elif method == 'csls':
+        knn_indices = CSLS_fast(k, xb, xq)
+    else:
+        raise 'Method not implemented: %s' % method
+
     predicted_dict = get_translation_dict(source_word_list, target_word_list,
                                           knn_indices)
     return calculate_precision(true_dict, predicted_dict)
@@ -154,6 +142,6 @@ def test_function(source_word_list):
 
 if __name__ == '__main__':
     true_dict = get_true_dict()
-    source_word_list = true_dict.keys()
+    # source_word_list = true_dict.keys()
     g = train()
     print("P@{} : {}".format(K, get_precision_k(K, g, true_dict)))

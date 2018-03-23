@@ -119,13 +119,7 @@ def train():
                 torch.save(d.state_dict(), 'discriminator_weights_{}.t7'.format(epoch))
                 #print("P@5: {}".format(get_precision_k(5, g, true_dict)))
         # Save the plot for discriminator accuracy and generator loss
-        fig = plt.figure()
-        plt.plot(range(0, num_epochs), d_acc_epochs, color='b', label='discriminator')
-        plt.plot(range(0, num_epochs), g_loss_epochs, color='r', label='generator')
-        plt.ylabel('accuracy/loss')
-        plt.xlabel('epochs')
-        plt.legend()
-        fig.savefig('d_g.png')
+
     except KeyboardInterrupt:
         print("Interrupted.. saving model !!!")
         torch.save(g.state_dict(), 'g_model_interrupt.t7')

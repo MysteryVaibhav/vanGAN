@@ -1,4 +1,6 @@
 /data/
 .idea/
 src/__pycache__/
-/faiss/
+.DS_Store
+discriminator_weights_*
+generator_weights_*
