@@ -75,13 +75,11 @@ def CSLS_fast(k, xb, xq):
 
     knn_indices = []
     for i in range(n_source):
-        print(i)
         src_wemb = xq[i, :]
         c = np.sum(np.multiply(np.repeat(src_wemb[np.newaxis, :],  n_target, axis=0), xb), axis=1)
         rs = np.repeat(r_source[i],  n_target, axis=0)
         csls = 2*c - rs - r_target
         knn_indices.append(np.argsort(csls)[-k:])
-        print(knn_indices[i])
 
     return knn_indices
 
