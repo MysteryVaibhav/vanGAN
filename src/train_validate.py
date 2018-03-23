@@ -65,9 +65,9 @@ def get_knn_indices(k, xb, xq):
 
 
 def CSLS_fast(k, xb, xq):
-    distances, _ = get_knn_indices(k, xb, xq)
+    distances, _ = get_knn_indices(csls_k, xb, xq)
     r_source = np.average(distances, axis=1)
-    distances, _ = get_knn_indices(k, xq, xb)
+    distances, _ = get_knn_indices(csls_k, xq, xb)
     r_target = np.average(distances, axis=1)
 
     n_source = np.shape(r_source)[0]

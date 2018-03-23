@@ -22,6 +22,7 @@ g_steps = 1
 smoothing = 0.1
 beta = 0.001
 clip_value = 0
+csls_k = 10
 
 # Training
 iters_in_epoch = 1000000
