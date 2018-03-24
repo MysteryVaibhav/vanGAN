@@ -37,3 +37,6 @@ noise_var = 0.2
 # Validation
 K = 5
 top_frequent_words = 200000
+
+# refinement
+top_refine = 15000

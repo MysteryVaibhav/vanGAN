@@ -50,19 +50,6 @@ def get_knn_indices(k, xb, xq):
     distances, knn_indices = index.search(xq, k)
     return distances, knn_indices
 
-# def get_knn_indices_fast(k, xb, xq):
-#     nlist = 100
-#     quantizer = faiss.IndexFlatIP(g_input_size)
-#     index = faiss.IndexFlatIP(quantizer, g_input_size, nlist, faiss.METRIC_L2)
-#
-#     assert not index.is_trained
-#     index.train(xb)
-#     assert index.is_trained
-#
-#     index.add(xb)
-#     distances, knn_indices = index.search(xq, k)
-#     return distances, knn_indices
-
 
 def CSLS_fast(k, xb, xq):
     distances, _ = get_knn_indices(csls_k, xb, xq)
