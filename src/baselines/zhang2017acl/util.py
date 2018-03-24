@@ -40,12 +40,14 @@ def get_word_vectors(path_embs, path_freqs=None, dirname=DATA_DIR,
     freqs = []
     print('Read ' + path.join(dirname, path_embs))
     with open(path.join(dirname, path_embs), 'r', encoding='utf-8') as f:
+        N, D = f.readline().strip().split()
+        D = int(D)
         next(f)  # Skip first row
         for count, line in enumerate(f, start=1):
             row = line.strip().split(' ')
             word = row[0]
             vec = np.array(row[1:]).astype(np.float)
-            if len(vec) == 300:
+            if len(vec) == D:
                 embeddings.append(vec)
                 freqs.append(word2freq[word])
             if count == top_frequent_words:
@@ -122,26 +124,26 @@ def get_true_dict():
 
 
 if __name__ == '__main__':
-    print("Reading english word embeddings...")
+    print('Reading english word embeddings...')
     word_vec_src, _ = get_word_vectors(SRC_WORD_VEC, SRC_WORD_FREQ,
                                        save=True, save_file_as=lang_src)
     print(word_vec_src.shape)
 
-    print("Reading trgalian word embeddings...")
+    print('Reading trgalian word embeddings...')
     word_vec_trg, _ = get_word_vectors(TRG_WORD_VEC, TRG_WORD_FREQ,
                                        save=True, save_file_as=lang_trg)
     print(word_vec_trg.shape)
 
-    print("Creating word vectors for both languages...")
+    print('Creating word vectors for both languages...')
     word_vec_src = get_word_vectors_dicts(SRC_WORD_VEC, save=True,
                                     save_file_as=lang_src + '_dict')
     word_vec_trg = get_word_vectors_dicts(TRG_WORD_VEC, save=True,
                                     save_file_as=lang_trg + '_dict')
 
-    print("Reading validation file...")
+    print('Reading validation file...')
     true_dict = get_validation_set(VALIDATION_FILE, save=True)
     
-    print("Done !!")
+    print('Done !!')
 
 
 class WeightedSampler():

@@ -76,7 +76,10 @@ def get_mapped_embeddings(g, source_word_list, gpu=False):
     target_word_list = list(target_vec_dict.keys())
     mapped_embeddings = np.zeros((len(source_word_list), g_input_size))
     for (i, source_word) in enumerate(source_word_list):
-        word_tensor = to_tensor(np.array(source_vec_dict[source_word]).astype(float))
+        try:
+            word_tensor = to_tensor(np.array(source_vec_dict[source_word]).astype(float))
+        except KeyError:  # word is not in the pre-trained word embeddings
+            continue
         if gpu:
             word_tensor = word_tensor.cuda()
         mapped_embedding = g(Variable(word_tensor)).data
@@ -89,7 +92,7 @@ def get_mapped_embeddings(g, source_word_list, gpu=False):
 def get_precision_k(k, g, true_dict, method='csls', gpu=False):
     source_word_list = true_dict.keys()
 
-    _, xb = get_embeddings()
+    _, xb = get_embeddings(lang_src=lang_src, lang_trg=lang_trg)
     xb = np.float32(xb)
     row_sum = np.linalg.norm(xb, axis=1)
     xb = xb / row_sum[:, np.newaxis]

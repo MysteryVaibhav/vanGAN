@@ -25,14 +25,21 @@ gpu = False
 def main(args):
     true_dict = get_true_dict()
     logger.info('Start training')
-    g = train(gan_model=args.gan_model, gpu=gpu, logger=logger)
+    g = train(gan_model=args.gan_model, gpu=gpu, logger=logger,
+              dir_model=args.dir_model)
+    if args.dir_model:
+        filename = path.join(args.dir_model, 'g{}_{}.pth'.format(args.gan_model, max_iters))
+        logger.info('Save a model to ' + filename)
+        g.save(filename)
     for k in [1, 5]:
-        print('P@{} : {}'.format(k, get_precision_k(k, g, true_dict)))
+        print('P@{} : {}'.format(k, get_precision_k(k, g, true_dict, gpu=gpu)))
 
 
 # Entry point
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
+    parser.add_argument('-o', '--output', dest='dir_model',
+                        help='path to an output directory')
     parser.add_argument('--gan-model', type=int, default=1,
                         help='GAN Model {1,2,3} (default=1)')
     parser.add_argument('--gpu', action='store_true', default=False,

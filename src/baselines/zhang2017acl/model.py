@@ -15,6 +15,9 @@ class Generator(nn.Module):
             return x.matmul(self.W.t())  # target to source
         return x.matmul(self.W)  # source to target
 
+    def save(self, filename):
+        torch.save(self.state_dict(), filename)
+
 
 class Discriminator(nn.Module):
     def __init__(self, input_size, output_size, hidden_size=500, sigma=0.5):
