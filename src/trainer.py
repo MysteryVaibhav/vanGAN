@@ -82,14 +82,15 @@ def train():
             for mini_batch in range(0, iters_in_epoch // mini_batch_size):
                 for d_index in range(d_steps):
                     d_optimizer.zero_grad()  # Reset the gradients
+                    d.train()
                     input, output = get_batch_data(en, it, g, detach=True)
                     pred = d(input)
                     d_loss = loss_fn(pred, output)
                     d_loss.backward()  # compute/store gradients, but don't change params
                     d_losses.append(d_loss.data.cpu().numpy())
                     discriminator_decision = pred.data.cpu().numpy()
-                    hit += np.sum(discriminator_decision[:mini_batch_size] < 0.5)
-                    hit += np.sum(discriminator_decision[mini_batch_size:] >= 0.5)
+                    hit += np.sum(discriminator_decision[:mini_batch_size] >= 0.5)
+                    hit += np.sum(discriminator_decision[mini_batch_size:] < 0.5)
                     d_optimizer.step()  # Only optimizes D's parameters; changes based on stored gradients from backward()
 
                     # Clip weights
@@ -104,7 +105,7 @@ def train():
                 for g_index in range(g_steps):
                     # 2. Train G on D's response (but DO NOT train D on these labels)
                     g_optimizer.zero_grad()
-
+                    d.eval()
                     input, output = get_batch_data(en, it, g, detach=False)
                     pred = d(input)
                     g_loss = loss_fn(pred, 1 - output) # -torch.log(pred).mean()
