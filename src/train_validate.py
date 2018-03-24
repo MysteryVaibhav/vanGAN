@@ -2,8 +2,8 @@ import platform
 import numpy as np
 from util import *
 from properties import *
+from model import *
 import json
-from trainer import *
 import os
 
 op_sys = platform.system()
@@ -65,9 +65,9 @@ def get_knn_indices(k, xb, xq):
 
 
 def CSLS_fast(k, xb, xq):
-    distances, _ = get_knn_indices(k, xb, xq)
+    distances, _ = get_knn_indices(csls_k, xb, xq)
     r_source = np.average(distances, axis=1)
-    distances, _ = get_knn_indices(k, xq, xb)
+    distances, _ = get_knn_indices(csls_k, xq, xb)
     r_target = np.average(distances, axis=1)
 
     n_source = np.shape(r_source)[0]
@@ -141,5 +141,8 @@ def test_function(source_word_list):
 if __name__ == '__main__':
     true_dict = get_true_dict()
     # source_word_list = true_dict.keys()
-    g = train()
-    print("P@{} : {}".format(K, get_precision_k(K, g, true_dict)))
+    g = Generator(input_size=g_input_size, output_size=g_output_size)
+    g.load_state_dict(torch.load('generator_weights_old_loss_0.t7'))
+    if torch.cuda.is_available():
+        g = g.cuda()
+    print("P@{} : {}".format(K, get_precision_k(K, g, true_dict, method='csls')))

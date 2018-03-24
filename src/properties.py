@@ -1,10 +1,11 @@
 import os
 
+
 DATA_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'data/')
 EN_WORD_TO_VEC = 'wiki.en.vec' #'EN.200K.cbow1_wind5_hs0_neg10_size300_smpl1e-05.txt'
-IT_WORD_TO_VEC = 'wiki.it.vec' #'IT.200K.cbow1_wind5_hs0_neg10_size300_smpl1e-05.txt'
-VALIDATION_FILE = 'en-it.5000-6500.txt' #'OPUS_en_it_europarl_test.txt'
-TRAIN_FILE = 'OPUS_en_it_europarl_train_5K.txt'
+IT_WORD_TO_VEC = 'wiki.es.vec' #'IT.200K.cbow1_wind5_hs0_neg10_size300_smpl1e-05.txt'
+VALIDATION_FILE = 'en-es.5000-6500.txt' #'OPUS_en_it_europarl_test.txt'
+#TRAIN_FILE = 'OPUS_en_it_europarl_train_5K.txt'
 
 # Model Hyper-Parameters
 g_input_size = 300     # Random noise dimension coming into generator, per output vector
@@ -16,17 +17,22 @@ mini_batch_size = 32
 
 d_learning_rate = 0.1
 g_learning_rate = 0.1
-num_epochs = 50
+num_epochs = 20
 d_steps = 5  # 'k' steps in the original GAN paper. Can put the discriminator on higher training freq than generator
 g_steps = 1
-smoothing = 0.1
+smoothing = 0.1   # As per what is mentioned in the paper
 beta = 0.001
 clip_value = 0
 
 # Training
 iters_in_epoch = 1000000
-most_frequent_sampling_size = 75000
+most_frequent_sampling_size = 75000   # Paper mentions this
 print_every = 1
+lr_decay = 0.98
+lr_min = 1e-6
+add_noise = False
+noise_mean = 1.0
+noise_var = 0.2
 
 # Validation
 K = 5
