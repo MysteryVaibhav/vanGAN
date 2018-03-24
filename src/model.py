@@ -24,8 +24,14 @@ class Discriminator(nn.Module):
         self.drop2 = nn.Dropout(0)    # As per the fb implementation
         self.activation2 = nn.LeakyReLU(0.2)
         self.map3 = nn.Linear(hidden_size, output_size)
+        
+    def gaussian(self, ins, mean, stddev):
+        noise = torch.autograd.Variable(ins.data.new(ins.size()).normal_(mean, stddev))
+        return ins * noise
 
     def forward(self, x):
+        if add_noise:
+            x = self.gaussian(x, mean=noise_mean, stddev=noise_var)  # muliplicative guassian noise
         x = self.activation1(self.map1(self.drop1(x))) # Input dropout
         x = self.drop2(self.activation2(self.map2(x)))
         return F.sigmoid(self.map3(x)).view(-1)
