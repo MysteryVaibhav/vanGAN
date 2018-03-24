@@ -11,7 +11,10 @@ def normalize(v):
 
 
 def to_tensor(numpy_array):
-    return torch.from_numpy(numpy_array).float()
+    tensor = torch.from_numpy(numpy_array).float()
+    if torch.cuda.is_available():
+        tensor = tensor.cuda()
+    return tensor
 
 
 def to_variable(tensor, volatile=False):

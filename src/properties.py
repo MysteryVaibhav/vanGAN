@@ -16,7 +16,7 @@ mini_batch_size = 32
 
 d_learning_rate = 0.1
 g_learning_rate = 0.1
-num_epochs = 50
+num_epochs = 10
 d_steps = 5  # 'k' steps in the original GAN paper. Can put the discriminator on higher training freq than generator
 g_steps = 1
 smoothing = 0.1
@@ -25,10 +25,13 @@ clip_value = 0
 csls_k = 10
 
 # Training
-iters_in_epoch = 1000000
+iters_in_epoch = 10000
 most_frequent_sampling_size = 75000
 print_every = 1
 
 # Validation
 K = 5
 top_frequent_words = 200000
+
+# refinement
+top_refine = 15000

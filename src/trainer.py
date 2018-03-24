@@ -13,6 +13,17 @@ import matplotlib.pyplot as plt
 #from train_validate import get_precision_k
 
 
+def convert_to_embeddings(emb_array):
+    emb_tensor = to_tensor(emb_array)
+    v, d = emb_tensor.size()
+    emb = torch.nn.Embedding(v, d)
+    if torch.cuda.is_available():
+        emb = emb.cuda()
+    emb.weight.data.copy_(emb_tensor)
+    emb.weight.requires_grad = False
+    return emb
+
+
 def get_batch_data(en, it, g, detach=False):
     random_en_indices = np.random.permutation(most_frequent_sampling_size)
     random_it_indices = np.random.permutation(most_frequent_sampling_size)
@@ -29,17 +40,35 @@ def get_batch_data(en, it, g, detach=False):
     return input, output
 
 
+def get_batch_data_fast(en, it, g, detach=False):
+    random_en_indices = torch.LongTensor(mini_batch_size).random_(most_frequent_sampling_size)
+    random_it_indices = torch.LongTensor(mini_batch_size).random_(most_frequent_sampling_size)
+    en_batch = en(to_variable(random_en_indices))
+    it_batch = it(to_variable(random_it_indices))
+    fake = g(en_batch)
+    if detach:
+        fake = fake.detach()
+    real = it_batch
+    input = torch.cat([fake, real], 0)
+    output = to_variable(torch.FloatTensor(2 * mini_batch_size).zero_())
+    output[:mini_batch_size] = smoothing
+    output[mini_batch_size:] = 1 - smoothing
+    return input, output
+
+
 def init_xavier(m):
     if type(m) == torch.nn.Linear:
         fan_in = m.weight.size()[1]
         fan_out = m.weight.size()[0]
         std = np.sqrt(6.0 / (fan_in + fan_out))
-        m.weight.data.normal_(0,std)
+        m.weight.data.normal_(0, std)
 
 
 def train():
     # Load data
     en, it = get_embeddings()   # Vocab x Embedding_dimension
+    # en = convert_to_embeddings(en)
+    # it = convert_to_embeddings(it)
 
     # Create models
     g = Generator(input_size=g_input_size, output_size=g_output_size)
@@ -69,7 +98,7 @@ def train():
             hit = 0
             total = 0
             start_time = timer()
-            for mini_batch in range(0, iters_in_epoch // mini_batch_size):
+            for mini_batch in range(0, iters_in_epoch//mini_batch_size):
                 for d_index in range(d_steps):
                     d_optimizer.zero_grad()  # Reset the gradients
                     input, output = get_batch_data(en, it, g, detach=True)
