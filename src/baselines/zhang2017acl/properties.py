@@ -26,7 +26,7 @@ beta = 0.001
 clip_value = 0
 
 # Training
-iters_in_epoch = 1000000
+iters_in_epoch = 100000
 most_frequent_sampling_size = 75000
 print_every = 1
 

@@ -1,7 +1,9 @@
-import numpy as np
-from properties import *
-import torch
+from os import path
 import logging
+import numpy as np
+import torch
+
+from properties import *
 
 
 def init_logger(name='logger'):
@@ -11,13 +13,6 @@ def init_logger(name='logger'):
     log_fmt = '%(asctime)s/%(name)s[%(levelname)s]: %(message)s'
     logging.basicConfig(format=log_fmt)
     return logger
-
-
-def normalize(v):
-    norm = np.linalg.norm(v)
-    if norm == 0:
-        return v
-    return v / norm
 
 
 def to_tensor(numpy_array):
@@ -87,10 +82,13 @@ def get_validation_set(file, dir=DATA_DIR, save=False, save_file_as='validation'
     return true_dict
 
 
-# Before using this method make sure you run this util file once to create the data files en.npy and it.npy
-# Returns the monolingual embeddings in en and it
-def get_embeddings():
-    return np.load(DATA_DIR + 'en.npy'), np.load(DATA_DIR + 'it.npy')
+def get_embeddings(lang_src='en', lang_trg='it', normalize=True):
+    en = np.load(path.join(DATA_DIR, lang_src + '.npy'))
+    it = np.load(path.join(DATA_DIR, lang_trg + '.npy'))
+    if normalize:
+        en = en / np.linalg.norm(en, axis=1).reshape((-1, 1))
+        it = it / np.linalg.norm(it, axis=1).reshape((-1, 1))
+    return en, it
 
 
 def get_embeddings_dicts():

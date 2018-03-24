@@ -1,12 +1,12 @@
 from torch import optim
-import numpy as np
-import sys
-import torch
-import torch.utils.data
-from tqdm import trange
 from torch.autograd import Variable
+from torch.nn import functional as F
 from torch.utils.data.sampler import BatchSampler
 from torch.utils.data.sampler import WeightedRandomSampler
+from tqdm import trange
+import numpy as np
+import torch
+import torch.utils.data
 
 from model import Generator
 from model import Discriminator
@@ -14,6 +14,8 @@ from properties import *
 from timeit import default_timer as timer
 from util import init_logger
 from util import get_embeddings
+from util import get_true_dict
+from evaluate import get_precision_k
 
 import matplotlib
 matplotlib.use('agg')
@@ -32,13 +34,17 @@ def init_xavier(m):
 def train(**kwargs):
     gpu = kwargs.get('gpu', False)
     flag_xavier = kwargs.get('flag_xavier', False)
-    gan_model = kwargs.get('gan_model', 0)
+    gan_model = kwargs.get('gan_model', 3)
     logger = kwargs.get('logger', init_logger('Training'))
+    flag_normalize = kwargs.get('normalize', True)
 
     # Load data
-    src, trg = get_embeddings()   # Vocab x Embedding_dimension
+    src, trg = get_embeddings(normalize=flag_normalize)   # Vocab x Embedding_dimension
     src = torch.FloatTensor(src)
     trg = torch.FloatTensor(trg)
+
+    logger.info('Get true dict')
+    true_dict = get_true_dict()
 
     # TODO: reflect word frequencies?
     weights = np.ones(most_frequent_sampling_size) / most_frequent_sampling_size
@@ -49,16 +55,19 @@ def train(**kwargs):
 
     # Create models
     g = Generator(input_size=g_input_size, output_size=g_output_size)
-    d_trg = Discriminator(  # Descriminator (source-side)
-        input_size=d_input_size, hidden_size=d_hidden_size, output_size=d_output_size)
-    d_src = None  # Descriminator (target-side)
-    if gan_model == 0:  # Model 1: Undirectional Transformation
-        pass
+    d_trg = Discriminator(  # Discriminator (source-side)
+        input_size=g_output_size, hidden_size=d_hidden_size, output_size=d_output_size)
+    d_src = None  # Discriminator (target-side)
+    lambda_r = 0.0  # Coefficient of reconstruction loss
+    if gan_model == 1:  # Model 1: Undirectional Transformation
+        logger.info('Model 1')
     elif gan_model == 2:  # Model 2: Bidirectional Transformation
-        d_src = Discriminator(  # Descriminator (source-side)
-            input_size=g_output_size, hidden_size=d_hidden_size, output_size=d_output_size)
+        d_src = Discriminator(  # Discriminator (source-side)
+            input_size=g_input_size, hidden_size=d_hidden_size, output_size=d_output_size)
+        logger.info('Model 2')
     else:  # Model 3: Adversarial Autoencoder
-        pass
+        lambda_r = kwargs.get('lambda_r', 1.0)
+        logger.info('Model 3: lambda = {}'.format(lambda_r))
 
     if flag_xavier:
         init_xavier(d_trg)
@@ -87,54 +96,63 @@ def train(**kwargs):
                 embs_trg = embs_trg.cuda()
 
             # Generator
-            g_optimizer.zero_grad()  # Reset the gradients
-            embs_trg_mapped = g(embs_src)  # Target embs mapped from source embs
-            g_loss = d_trg(embs_src).log().neg().mean()  # source-to-target
+            embs_trg_mapped = g(embs_src)  # target embs mapped from source embs
+            g_loss = -d_trg(embs_trg_mapped).log().mean()  # discriminate in the trg side
             if d_src is not None:
-                embs_src_mapped = g(embs_trg, src2trg=False)  # Src embs mapped from trg embs
-                g_loss += d_src(embs_src_mapped).log().neg().mean()  # target-to-source
+                embs_src_mapped = g(embs_trg, trg2src=True)  # src embs mapped from trg embs
+                g_loss += -d_src(embs_src_mapped).log().mean()  # target-to-source
+
+            if lambda_r > 0:
+                embs_src_r = g(embs_trg_mapped, trg2src=True)  # reconstructed src embs
+                g_loss_r = 1.0 - F.cosine_similarity(embs_src, embs_src_r).mean()
+                g_loss += lambda_r * g_loss_r
+
+            ## Update
+            g_optimizer.zero_grad()  # reset the gradients
             g_loss.backward()
             g_optimizer.step()
 
-            # Descriminator (target-side)
-            d_trg_optimizer.zero_grad()
+            # Discriminator (target-side)
             preds = d_trg(embs_trg)
             hits = int(sum(preds >= 0.5))
-            d_trg_loss = preds.log().neg().mean()  # -log(D(Y))
-            preds = (1 - d_trg(embs_trg_mapped.detach()))
-            hits += int(sum(preds >= 0.5))
-            d_trg_loss += preds.log().neg().mean()  # -log(1 - D(G(X)))
-            d_trg_loss.backward()
-            d_trg_optimizer.step()
+            d_trg_loss = -preds.log().sum()  # -log(D(Y))
+            preds = d_trg(embs_trg_mapped.detach())
+            hits += int(sum(preds < 0.5))
+            d_trg_loss += -(1.0 - preds).log().sum()  # -log(1 - D(G(X)))
+            d_trg_loss /= embs_trg.size(0) + embs_trg_mapped.size(0)
             d_trg_acc = hits / float(embs_trg.size(0) + embs_trg_mapped.size(0))
 
-            # Descriminator (source-side)
+            ## Update
+            d_trg_optimizer.zero_grad()
+            d_trg_loss.backward()
+            d_trg_optimizer.step()
+
+            # Discriminator (source-side)
             if d_src is not None:
+                preds = d_src(embs_src)
+                hits = int(sum(preds >= 0.5))
+                d_src_loss = -preds.log().sum()  # -log(D(X))
+                preds = d_src(embs_src_mapped.detach())
+                hits = int(sum(preds < 0.5))
+                d_src_loss += -(1.0 - preds).log().sum()  # -log(1 - D(G(Y)))
+                d_src_loss /= embs_src.size(0) + embs_src_mapped.size(0)
+                d_src_acc = hits / float(embs_src.size(0) + embs_src_mapped.size(0))
+
+                ## Update
                 d_src_optimizer.zero_grad()
-                d_src_loss = d_src(embs_src).log().neg().mean()  # -log(D(Y))
-                d_src_loss += (1 - d_src(embs_src_mapped.detach())).log().neg().mean()  # -log(1 - D(G(X)))
                 d_src_loss.backward()
                 d_src_optimizer.step()
 
             if itr % 50 == 0:
                 status = ['[{}/{}]'.format(itr, epoch)]
                 status.append('G: {:.5f}'.format(float(g_loss.data)))
+                if lambda_r > 0:
+                    status.append('G(r): {:.5f}'.format(float(g_loss_r.data)))
                 status.append('D(trg): {:.5f} {:.3f}'.format(float(d_trg_loss.data), d_trg_acc))
                 if d_src is not None:
-                    status.append('D(src): {:.5f}'.format(float(d_src_loss.data)))
+                    status.append('D(src): {:.5f} {:.3f}'.format(float(d_src_loss.data), d_src_acc))
                 logger.info(' '.join(status))
+        for k in [1, 5, 10]:
+            print('P@{} : {}'.format(k, get_precision_k(k, g, true_dict,
+                                                        method='nn', gpu=gpu)))
     return g
-
-
-def orthogonalize(W):
-    W.copy_((1 + beta) * W - beta * W.mm(W.transpose(0, 1).mm(W)))
-
-    
-def clip(d, clip):
-    if clip > 0:
-        for x in d.parameters():
-            x.data.clamp_(-clip, clip)
-
-
-if __name__ == '__main__':
-    generator = train()
