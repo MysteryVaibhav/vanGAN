@@ -49,9 +49,9 @@ def train(**kwargs):
     # TODO: reflect word frequencies?
     weights = np.ones(most_frequent_sampling_size) / most_frequent_sampling_size
     src_sampler = BatchSampler(WeightedRandomSampler(weights, iters_in_epoch),
-                              mini_batch_size, drop_last=True)
+                               mini_batch_size, drop_last=True)
     trg_sampler = BatchSampler(WeightedRandomSampler(weights, iters_in_epoch),
-                              mini_batch_size, drop_last=True)
+                               mini_batch_size, drop_last=True)
 
     # Create models
     g = Generator(input_size=g_input_size, output_size=g_output_size)
@@ -104,7 +104,7 @@ def train(**kwargs):
 
             if lambda_r > 0:
                 embs_src_r = g(embs_trg_mapped, trg2src=True)  # reconstructed src embs
-                g_loss_r = 1.0 - F.cosine_similarity(embs_src, embs_src_r).mean()
+                g_loss_r = -F.cosine_similarity(embs_src, embs_src_r).mean()
                 g_loss += lambda_r * g_loss_r
 
             ## Update
@@ -143,7 +143,7 @@ def train(**kwargs):
                 d_src_loss.backward()
                 d_src_optimizer.step()
 
-            if itr % 50 == 0:
+            if itr % 100 == 0:
                 status = ['[{}/{}]'.format(itr, epoch)]
                 status.append('G: {:.5f}'.format(float(g_loss.data)))
                 if lambda_r > 0:
@@ -151,8 +151,13 @@ def train(**kwargs):
                 status.append('D(trg): {:.5f} {:.3f}'.format(float(d_trg_loss.data), d_trg_acc))
                 if d_src is not None:
                     status.append('D(src): {:.5f} {:.3f}'.format(float(d_src_loss.data), d_src_acc))
+                WW = g.W.t().matmul(g.W)
+                if gpu:
+                    WW = WW.cpu()
+                orth_score = np.linalg.norm(WW.data.numpy() - np.identity(WW.size(0)))
+                status.append('Orth.: {:.2f}'.format(orth_score))
                 logger.info(' '.join(status))
-        for k in [1, 5, 10]:
-            print('P@{} : {}'.format(k, get_precision_k(k, g, true_dict,
-                                                        method='nn', gpu=gpu)))
+        # for k in [1, 5, 10]:
+        #     print('P@{} : {}'.format(k, get_precision_k(k, g, true_dict,
+        #                                                 method='nn', gpu=gpu)))
     return g

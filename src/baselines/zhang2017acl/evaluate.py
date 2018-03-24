@@ -92,12 +92,12 @@ def get_precision_k(k, g, true_dict, method='csls', gpu=False):
     _, xb = get_embeddings()
     xb = np.float32(xb)
     row_sum = np.linalg.norm(xb, axis=1)
-    xb = xb/row_sum[:, np.newaxis]
+    xb = xb / row_sum[:, np.newaxis]
 
     xq, target_word_list = get_mapped_embeddings(g, source_word_list, gpu=gpu)
     xq = np.float32(xq)
     row_sum = np.linalg.norm(xq, axis=1)
-    xq = xq/row_sum[:, np.newaxis]
+    xq = xq / row_sum[:, np.newaxis]
 
     if method == 'nn':
         _, knn_indices = get_knn_indices(k, xb, xq)

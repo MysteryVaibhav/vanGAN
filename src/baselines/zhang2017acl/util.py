@@ -1,3 +1,4 @@
+from collections import defaultdict
 from os import path
 import logging
 import numpy as np
@@ -26,29 +27,41 @@ def to_variable(tensor, volatile=False):
 
 
 # Returns a mapping of words and their embedding
-def get_word_vectors(file, dir=DATA_DIR, save=False, save_file_as='en'):
+def get_word_vectors(path_embs, path_freqs=None, dirname=DATA_DIR,
+                     save=False, save_file_as='en'):
+    word2freq = defaultdict(int)
+    if path_freqs:
+        with open(path.join(dirname, path_freqs), 'r', encoding='utf-8') as f:
+            for line in f:
+                word, freq = line.strip().split(' ')
+                word2freq[word] = int(freq)
+
     embeddings = []
-    keys = []
-    count = 0
-    with open(dir + file, 'r', encoding='utf-8') as f:
+    freqs = []
+    print('Read ' + path.join(dirname, path_embs))
+    with open(path.join(dirname, path_embs), 'r', encoding='utf-8') as f:
         next(f)  # Skip first row
-        for count, row in enumerate(f, start=1):
-            split_row = row.split(" ")
-            vec = np.array(split_row[1:-1]).astype(np.float)
+        for count, line in enumerate(f, start=1):
+            row = line.strip().split(' ')
+            word = row[0]
+            vec = np.array(row[1:]).astype(np.float)
             if len(vec) == 300:
                 embeddings.append(vec)
-                keys.append(split_row[0])
+                freqs.append(word2freq[word])
             if count == top_frequent_words:
                 break
-    np.save(DATA_DIR + save_file_as + '.npy', np.array(embeddings))
-    return np.array(embeddings)
+    if save:
+        np.save(DATA_DIR + save_file_as + '.npy', np.array(embeddings))
+        np.save(DATA_DIR + save_file_as + '.freq.npy', np.array(freqs))
+    return np.array(embeddings), freqs
 
 
-def get_word_vectors_dicts(file, dir=DATA_DIR, save=False,
+def get_word_vectors_dicts(filename, dirname=DATA_DIR, save=False,
                            save_file_as='en_dict'):
     word2vec = {}
     count = 0
-    with open(dir + file, 'r', encoding='utf-8') as f:
+    print('Read ' + path.join(dirname, filename))
+    with open(path.join(dirname, filename), 'r', encoding='utf-8') as f:
         ignore_first_row = True
         for row in f.readlines():
             if ignore_first_row:
@@ -62,13 +75,14 @@ def get_word_vectors_dicts(file, dir=DATA_DIR, save=False,
             if count == top_frequent_words:
                 break
     if save:
-        np.save(dir + save_file_as + '.npy', word2vec)
+        np.save(path.join(dirname, save_file_as + '.npy'), word2vec)
     return word2vec
 
 
-def get_validation_set(file, dir=DATA_DIR, save=False, save_file_as='validation'):
+def get_validation_set(filename, dirname=DATA_DIR, save=False, save_file_as='validation'):
     true_dict = {}
-    with open(dir + file, 'r', encoding='utf-8') as f:
+    print('Read ' + path.join(dirname, filename))
+    with open(path.join(dirname, filename), 'r', encoding='utf-8') as f:
         rows = f.readlines()
         for row in rows:
             split_row = row.split(" ")
@@ -78,21 +92,29 @@ def get_validation_set(file, dir=DATA_DIR, save=False, save_file_as='validation'
                 true_dict[key] = []
                 true_dict[split_row[0]].append(value)
     if save:
-        np.save(dir + save_file_as + '.npy', true_dict)
+        np.save(path.join(dirname, save_file_as + '.npy'), true_dict)
     return true_dict
 
 
 def get_embeddings(lang_src='en', lang_trg='it', normalize=True):
-    en = np.load(path.join(DATA_DIR, lang_src + '.npy'))
-    it = np.load(path.join(DATA_DIR, lang_trg + '.npy'))
+    src = np.load(path.join(DATA_DIR, lang_src + '.npy'))
+    trg = np.load(path.join(DATA_DIR, lang_trg + '.npy'))
     if normalize:
-        en = en / np.linalg.norm(en, axis=1).reshape((-1, 1))
-        it = it / np.linalg.norm(it, axis=1).reshape((-1, 1))
-    return en, it
+        src = src / np.linalg.norm(src, axis=1).reshape((-1, 1))
+        trg = trg / np.linalg.norm(trg, axis=1).reshape((-1, 1))
+    return src, trg
 
 
-def get_embeddings_dicts():
-    return np.load(DATA_DIR + 'en_dict.npy').item(), np.load(DATA_DIR + 'it_dict.npy').item()
+def get_frequencies(lang_src='en', lang_trg='it'):
+    src = np.load(path.join(DATA_DIR, lang_src + '.freq.npy'))
+    trg = np.load(path.join(DATA_DIR, lang_trg + '.freq.npy'))
+    return src, trg
+
+
+def get_embeddings_dicts(lang_src='en', lang_trg='it'):
+    dict_src = np.load(DATA_DIR + lang_src + '_dict.npy').item()
+    dict_trg = np.load(DATA_DIR + lang_trg + '_dict.npy').item()
+    return dict_src, dict_trg
 
 
 def get_true_dict():
@@ -101,20 +123,52 @@ def get_true_dict():
 
 if __name__ == '__main__':
     print("Reading english word embeddings...")
-    word2vec_en = get_word_vectors(EN_WORD_TO_VEC, save=True, save_file_as='en')
-    print(word2vec_en.shape)
+    word_vec_src, _ = get_word_vectors(SRC_WORD_VEC, SRC_WORD_FREQ,
+                                       save=True, save_file_as=lang_src)
+    print(word_vec_src.shape)
 
-    print("Reading italian word embeddings...")
-    word2vec_it = get_word_vectors(IT_WORD_TO_VEC, save=True, save_file_as='it')
-    print(word2vec_it.shape)
+    print("Reading trgalian word embeddings...")
+    word_vec_trg, _ = get_word_vectors(TRG_WORD_VEC, TRG_WORD_FREQ,
+                                       save=True, save_file_as=lang_trg)
+    print(word_vec_trg.shape)
 
     print("Creating word vectors for both languages...")
-    word2vec_en = get_word_vectors_dicts(EN_WORD_TO_VEC, save=True,
-                                    save_file_as='en_dict')
-    word2vec_it = get_word_vectors_dicts(IT_WORD_TO_VEC, save=True,
-                                    save_file_as='it_dict')
-    
+    word_vec_src = get_word_vectors_dicts(SRC_WORD_VEC, save=True,
+                                    save_file_as=lang_src + '_dict')
+    word_vec_trg = get_word_vectors_dicts(TRG_WORD_VEC, save=True,
+                                    save_file_as=lang_trg + '_dict')
+
     print("Reading validation file...")
     true_dict = get_validation_set(VALIDATION_FILE, save=True)
     
     print("Done !!")
+
+
+class WeightedSampler():
+    def __init__(self, weights, replacement=True):
+        """Initialize a sampler.
+
+        Arguments:
+        - weights (list)   : a list of weights, not necessary summing up to one
+        - replacement (bool): if ``True``, samples are drawn with replacement.
+        """
+        self.weights = torch.DoubleTensor(weights)
+        self.replacement = replacement
+
+    def get_iterator(self, batch_size):
+        """Generate a batch of samples infinitely."""
+        while True:
+            yield torch.multinomial(self.weights, batch_size, self.replacement)
+        
+
+def downsample_frequent_words(counts, thresh=1e-3):
+    """Discount frequent words."""
+    total_count = counts.sum()
+    indices_zero = counts == 0
+    counts[indices_zero] = 1.0  # avoid a numerical error
+    threshold_count = float(thresh * total_count)
+    new_weights = (np.sqrt(counts / threshold_count) + 1) * (threshold_count / counts)
+    new_weights = np.maximum(new_weights, 1.0)
+    new_weights *= counts
+    new_weights[indices_zero] = 0.0
+    return new_weights / new_weights.sum()

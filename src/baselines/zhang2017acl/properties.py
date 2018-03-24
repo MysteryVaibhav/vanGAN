@@ -1,12 +1,18 @@
+from os import mkdir
 from os import path
 
 CUR_DIR = path.dirname(path.abspath(__file__))
 ROOT_DIR = path.dirname(path.dirname(path.dirname(CUR_DIR)))
 DATA_DIR = path.join(ROOT_DIR, 'data/')
-EN_WORD_TO_VEC = 'wiki.en.vec' #'EN.200K.cbow1_wind5_hs0_neg10_size300_smpl1e-05.txt'
-IT_WORD_TO_VEC = 'wiki.it.vec' #'IT.200K.cbow1_wind5_hs0_neg10_size300_smpl1e-05.txt'
-VALIDATION_FILE = 'en-it.5000-6500.txt' #'OPUS_en_it_europarl_test.txt'
-TRAIN_FILE = 'OPUS_en_it_europarl_train_5K.txt'
+MODEL_DIR = path.join(ROOT_DIR, 'models')
+
+lang_src = 'en'
+lang_trg = 'es'
+SRC_WORD_VEC = 'zhang2017acl.en.vec'
+TRG_WORD_VEC = 'zhang2017acl.es.vec'
+SRC_WORD_FREQ = 'zhang2017acl.en.freq'
+TRG_WORD_FREQ = 'zhang2017acl.es.freq'
+VALIDATION_FILE = 'en-es.5000-6500.txt'
 
 # Model Hyper-Parameters
 g_input_size = 300     # Random noise dimension coming into generator, per output vector
@@ -26,7 +32,7 @@ beta = 0.001
 clip_value = 0
 
 # Training
-iters_in_epoch = 100000
+max_iters = 500000
 most_frequent_sampling_size = 75000
 print_every = 1
 
