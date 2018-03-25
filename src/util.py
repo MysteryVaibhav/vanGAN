@@ -78,7 +78,7 @@ def get_validation_set(file, dir=DATA_DIR, save=False, save_file_as='validation'
             value = split_row[1].rstrip("\n")
             if key not in true_dict.keys():
                 true_dict[key] = []
-                true_dict[split_row[0]].append(value)
+            true_dict[split_row[0]].append(value)
     if save:
         np.save(dir + save_file_as + '.npy', true_dict)
     return true_dict
