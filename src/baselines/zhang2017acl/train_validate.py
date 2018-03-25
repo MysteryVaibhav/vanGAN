@@ -40,8 +40,8 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('-o', '--output', dest='dir_model',
                         help='path to an output directory')
-    parser.add_argument('--gan-model', type=int, default=1,
-                        help='GAN Model {1,2,3} (default=1)')
+    parser.add_argument('--gan-model', type=int, default=3,
+                        help='GAN Model {1,2,3} (default=3)')
     parser.add_argument('--gpu', action='store_true', default=False,
                         help='use GPU')
     parser.add_argument('-v', '--verbose',

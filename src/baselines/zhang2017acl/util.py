@@ -1,4 +1,5 @@
 from collections import defaultdict
+from collections import OrderedDict
 from os import path
 import logging
 import numpy as np
@@ -28,7 +29,7 @@ def to_variable(tensor, volatile=False):
 
 # Returns a mapping of words and their embedding
 def get_word_vectors(path_embs, path_freqs=None, dirname=DATA_DIR,
-                     save=False, save_file_as='en'):
+                     save=False, save_file_as=lang_src):
     word2freq = defaultdict(int)
     if path_freqs:
         with open(path.join(dirname, path_freqs), 'r', encoding='utf-8') as f:
@@ -60,19 +61,18 @@ def get_word_vectors(path_embs, path_freqs=None, dirname=DATA_DIR,
 
 def get_word_vectors_dicts(filename, dirname=DATA_DIR, save=False,
                            save_file_as='en_dict'):
-    word2vec = {}
+    word2vec = OrderedDict()
     count = 0
     print('Read ' + path.join(dirname, filename))
     with open(path.join(dirname, filename), 'r', encoding='utf-8') as f:
-        ignore_first_row = True
-        for row in f.readlines():
-            if ignore_first_row:
-                ignore_first_row = False
-                continue
-            split_row = row.split(" ")
-            vec = np.array(split_row[1:-1]).astype(np.float)
-            if len(vec) == 300:
-                word2vec[split_row[0]] = vec
+        N, D = f.readline().strip().split()
+        D = int(D)
+        for count, line in enumerate(f.readlines()):
+            row = line.strip().split(' ')
+            word = row[0]
+            vec = np.array(row[1:]).astype(np.float)
+            if len(vec) == D:
+                word2vec[word] = vec
             count += 1
             if count == top_frequent_words:
                 break
@@ -82,7 +82,7 @@ def get_word_vectors_dicts(filename, dirname=DATA_DIR, save=False,
 
 
 def get_validation_set(filename, dirname=DATA_DIR, save=False, save_file_as='validation'):
-    true_dict = {}
+    true_dict = OrderedDict()
     print('Read ' + path.join(dirname, filename))
     with open(path.join(dirname, filename), 'r', encoding='utf-8') as f:
         rows = f.readlines()
@@ -98,7 +98,7 @@ def get_validation_set(filename, dirname=DATA_DIR, save=False, save_file_as='val
     return true_dict
 
 
-def get_embeddings(lang_src='en', lang_trg='it', normalize=True):
+def get_embeddings(lang_src=lang_src, lang_trg=lang_trg, normalize=True):
     src = np.load(path.join(DATA_DIR, lang_src + '.npy'))
     trg = np.load(path.join(DATA_DIR, lang_trg + '.npy'))
     if normalize:
@@ -107,13 +107,13 @@ def get_embeddings(lang_src='en', lang_trg='it', normalize=True):
     return src, trg
 
 
-def get_frequencies(lang_src='en', lang_trg='it'):
+def get_frequencies(lang_src=lang_src, lang_trg=lang_trg):
     src = np.load(path.join(DATA_DIR, lang_src + '.freq.npy'))
     trg = np.load(path.join(DATA_DIR, lang_trg + '.freq.npy'))
     return src, trg
 
 
-def get_embeddings_dicts(lang_src='en', lang_trg='it'):
+def get_embeddings_dicts(lang_src=lang_src, lang_trg=lang_trg):
     dict_src = np.load(DATA_DIR + lang_src + '_dict.npy').item()
     dict_trg = np.load(DATA_DIR + lang_trg + '_dict.npy').item()
     return dict_src, dict_trg
