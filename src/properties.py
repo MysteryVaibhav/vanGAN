@@ -3,12 +3,24 @@ import os
 """Default parameters"""
 
 DATA_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'data/')
+if not os.path.exists(DATA_DIR):
+    os.makedirs(DATA_DIR)
+MODEL_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'models/')
+if not os.path.exists(MODEL_DIR):
+    os.makedirs(MODEL_DIR)
+
 EN_WORD_TO_VEC = 'wiki.en.vec'
-# For Wacky dataset: 'EN.200K.cbow1_wind5_hs0_neg10_size300_smpl1e-05.txt'
 IT_WORD_TO_VEC = 'wiki.it.vec'
-# For Wacky dataset: 'IT.200K.cbow1_wind5_hs0_neg10_size300_smpl1e-05.txt'
-VALIDATION_FILE = 'en-it.5000-6500.txt' # 'OPUS_en_it_europarl_test.txt'
-# TRAIN_FILE = 'OPUS_en_it_europarl_train_5K.txt'
+VALIDATION_FILE = 'en-it.5000-6500.txt'
+
+# For Wacky dataset:
+
+# EN_WORD_TO_VEC = 'EN.200K.cbow1_wind5_hs0_neg10_size300_smpl1e-05.txt'
+# IT_WORD_TO_VEC = 'IT.200K.cbow1_wind5_hs0_neg10_size300_smpl1e-05.txt'
+# VALIDATION_FILE = 'OPUS_en_it_europarl_test.txt'
+
+# For Procrustes (Supervised):
+TRAIN_FILE = 'OPUS_en_it_europarl_train_5K.txt'
 
 # Model Hyper-Parameters
 g_input_size = 300     # Random noise dimension coming into generator, per output vector
@@ -45,8 +57,6 @@ top_frequent_words = 200000
 top_refine = 15000
 
 # data processing, train or eval
-data_only = 0
-train_only = 1
-eval_only = 0
+mode = 1
 
 csls_k = 10

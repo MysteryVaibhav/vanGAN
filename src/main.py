@@ -45,9 +45,9 @@ def parse_arguments():
     parser.add_argument("--top_refine", dest="top_refine", type=int, default=top_refine)
     parser.add_argument("--csls_k", dest="csls_k", type=int, default=csls_k)
 
-    parser.add_argument("--data_only", dest="data_only", type=int, default=data_only)
-    parser.add_argument("--train_only", dest="train_only", type=int, default=train_only)
-    parser.add_argument("--eval_only", dest="eval_only", type=int, default=eval_only)
+    parser.add_argument("--mode", dest="mode", type=int, default=mode)
+    parser.add_argument("--model_dir", dest="model_dir", type=str, default=MODEL_DIR)
+    parser.add_argument("--model_file_name", dest="model_file_name", type=str, default="generator_weights_best_0.t7")
 
     return parser.parse_args()
 
@@ -55,23 +55,30 @@ def parse_arguments():
 def main():
     params = parse_arguments()
 
-    if params.data_only:
+    if params.mode == 0:
         run(params)
 
-    if params.train_only == 1:
+    if params.mode == 1:
         t = Trainer(params)
         g = t.train()
 
-    # else:
-    #     g = Generator(input_size=g_input_size, output_size=g_output_size)
-    #     g.load_state_dict(torch.load('generator_weights_old_loss_0.t7'))
-    #
-    # if torch.cuda.is_available():
-    #     g = g.cuda()
-    #
+    elif params.mode == 2:
+        model_file_path = os.path.join(params.model_dir, params.model_file_name)
+        g = Generator(input_size=g_input_size, output_size=g_output_size)
+        g.load_state_dict(torch.load(model_file_path, map_location='cpu'))
+
+        if torch.cuda.is_available():
+            g = g.cuda()
+
+        print("Done!")
+
+    else:
+        raise "Invalid flag!"
+
     # source_word_list = true_dict.keys()
     # true_dict = get_true_dict()
     # print("P@{} : {}".format(K, get_precision_k(K, g, true_dict, method='csls_faster')))
+
 
 if __name__ == '__main__':
     main()

@@ -8,3 +8,4 @@ d_model_*
 g_model_*
 src/.ipynb_checkpoints/
 src/numpy-vs-pytorch.ipynb
+models/*
