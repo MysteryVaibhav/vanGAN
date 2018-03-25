@@ -2,7 +2,7 @@ from util import run
 from properties import *
 from model import *
 from evaluation import get_precision_k
-from trainer import train
+from trainer import Trainer
 import sys
 import argparse
 
@@ -58,8 +58,9 @@ def main():
     if params.data_only:
         run(params)
 
-    if train:
-        g = train(params)
+    if params.train_only == 1:
+        t = Trainer(params)
+        g = t.train()
 
     # else:
     #     g = Generator(input_size=g_input_size, output_size=g_output_size)
