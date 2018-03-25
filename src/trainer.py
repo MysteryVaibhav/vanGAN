@@ -10,18 +10,7 @@ from timeit import default_timer as timer
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
-from train_validate import get_precision_k
-
-
-def convert_to_embeddings(emb_array):
-    emb_tensor = to_tensor(emb_array)
-    v, d = emb_tensor.size()
-    emb = torch.nn.Embedding(v, d)
-    if torch.cuda.is_available():
-        emb = emb.cuda()
-    emb.weight.data.copy_(emb_tensor)
-    emb.weight.requires_grad = False
-    return emb
+from evaluation import get_precision_k
 
 
 def get_batch_data(en, it, g, detach=False):
@@ -64,9 +53,12 @@ def init_xavier(m):
         m.weight.data.normal_(0, std)
 
 
-def train():
+def train(params):
     # Load data
-    en, it = get_embeddings()   # Vocab x Embedding_dimension
+    if not os.path.exists(params.data_dir):
+        raise "Data path doesn't exists: %s" % params.data_dir
+
+    en, it = get_embeddings(params.data_dir)   # Vocab x Embedding_dimension
     en = convert_to_embeddings(en)
     it = convert_to_embeddings(it)
 
@@ -88,7 +80,7 @@ def train():
         d = d.cuda()
         loss_fn = loss_fn.cuda()
 
-    true_dict = get_true_dict()
+    true_dict = get_true_dict(params.data_dir)
     d_acc_epochs = []
     g_loss_epochs = []
     
@@ -97,8 +89,8 @@ def train():
     log_file.write("epoch,dis_loss,dis_acc,g_loss,p@1,p@5\n")
     
     #Initial precision without training
-    p_1 = get_precision_k(1, g, true_dict, method='nn')
-    p_5 = get_precision_k(5, g, true_dict, method='nn')
+    p_1 = get_precision_k(1, g, true_dict, params.data_dir, method='nn')
+    p_5 = get_precision_k(5, g, true_dict, params.data_dir, method='nn')
     log_file.write("0,-,-,-,{},{}\n".format(p_1, p_5))
     
     try:

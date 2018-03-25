@@ -1,0 +1,2 @@
+epoch,dis_loss,dis_acc,g_loss,p@1,p@5
+0,-,-,-,0.0,0.0
