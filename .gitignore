@@ -4,3 +4,8 @@ src/__pycache__/
 .DS_Store
 discriminator_weights_*
 generator_weights_*
+d_model_*
+g_model_*
+src/.ipynb_checkpoints/
+src/numpy-vs-pytorch.ipynb
+models/*
