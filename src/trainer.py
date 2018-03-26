@@ -13,21 +13,25 @@ import matplotlib.pyplot as plt
 from evaluation import get_precision_k
 import os
 from datetime import timedelta
+import json
 
 
 class Trainer:
     def __init__(self, params):
         self.params = params
 
-    def train(self):
+    def train(self, src_emb, tgt_emb, eval):
         params = self.params
         # Load data
         if not os.path.exists(params.data_dir):
             raise "Data path doesn't exists: %s" % params.data_dir
 
-        en, it = get_embeddings(params.data_dir)  # Vocab x Embedding_dimension
-        en = convert_to_embeddings(en)
-        it = convert_to_embeddings(it)
+        # en, it = get_embeddings(params.data_dir)  # Vocab x Embedding_dimension
+        # en = convert_to_embeddings(en)
+        # it = convert_to_embeddings(it)
+
+        en = src_emb
+        it = tgt_emb
 
         # Create models
         g = Generator(input_size=params.g_input_size, output_size=params.g_output_size)
@@ -47,18 +51,18 @@ class Trainer:
             d = d.cuda()
             loss_fn = loss_fn.cuda()
 
-        true_dict = get_true_dict(params.data_dir)
+        # true_dict = get_true_dict(params.data_dir)
         d_acc_epochs = []
         g_loss_epochs = []
 
         # logs for plotting later
         log_file = open("log_en_es.txt", "w")
-        log_file.write("epoch, dis_loss, dis_acc, g_loss, p@1, p@5\n")
+        log_file.write("epoch, dis_loss, dis_acc, g_loss\n")
 
-        # Initial precision without training
-        p_1 = get_precision_k(1, g, true_dict, params.data_dir, method='nn')
-        p_5 = get_precision_k(5, g, true_dict, params.data_dir, method='nn')
-        log_file.write("0, -, -, -, {}, {}\n".format(p_1, p_5))
+        # # Initial precision without training
+        # p_1 = get_precision_k(1, g, true_dict, params.data_dir, method='nn')
+        # p_5 = get_precision_k(5, g, true_dict, params.data_dir, method='nn')
+        # log_file.write("0, -, -, -, {}, {}\n".format(p_1, p_5))
 
         try:
             for epoch in range(params.num_epochs):
@@ -123,22 +127,20 @@ class Trainer:
                 # lr decay
                 g_optim_state = g_optimizer.state_dict()
                 old_lr = g_optim_state['param_groups'][0]['lr']
-                g_optim_state['param_groups'][0]['lr'] = max(old_lr * lr_decay, lr_min)
+                g_optim_state['param_groups'][0]['lr'] = max(old_lr * params.lr_decay, params.lr_min)
                 g_optimizer.load_state_dict(g_optim_state)
                 print("Changing the learning rate: {} -> {}".format(old_lr, g_optim_state['param_groups'][0]['lr']))
                 d_optim_state = d_optimizer.state_dict()
-                d_optim_state['param_groups'][0]['lr'] = max(d_optim_state['param_groups'][0]['lr'] * lr_decay, lr_min)
+                d_optim_state['param_groups'][0]['lr'] = max(d_optim_state['param_groups'][0]['lr'] * params.lr_decay, params.lr_min)
                 d_optimizer.load_state_dict(d_optim_state)
 
                 if (epoch + 1) % params.print_every == 0:
                     torch.save(g.state_dict(), 'generator_weights_en_es_{}.t7'.format(epoch))
                     torch.save(d.state_dict(), 'discriminator_weights_en_es_{}.t7'.format(epoch))
-                    p_1 = get_precision_k(1, g, true_dict, params.data_dir, method='nn')
-                    p_5 = get_precision_k(5, g, true_dict, params.data_dir, method='nn')
-                    print("P@1: {}, P@5: {}".format(p_1, p_5))
-                    log_file.write("{},{:.5f},{:.5f},{:.5f},{:.5f},{:.5f}\n".format(epoch + 1, np.asscalar(np.mean(d_losses)),
-                                                                                    hit / total, np.asscalar(np.mean(g_losses)),
-                                                                                    p_1, p_5))
+                    all_precisions = eval.get_all_precisions(g(src_emb.weight).data)
+                    print(json.dumps(all_precisions))
+                    log_file.write("{},{:.5f},{:.5f},{:.5f}\n".format(epoch + 1, np.asscalar(np.mean(d_losses)), hit / total, np.asscalar(np.mean(g_losses))))
+                    log_file.write(str(all_precisions) + "\n")
 
             # Save the plot for discriminator accuracy and generator loss
             fig = plt.figure()

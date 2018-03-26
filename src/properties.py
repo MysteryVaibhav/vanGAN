@@ -10,8 +10,8 @@ if not os.path.exists(MODEL_DIR):
     os.makedirs(MODEL_DIR)
 
 EN_WORD_TO_VEC = 'wiki.en.vec'
-IT_WORD_TO_VEC = 'wiki.it.vec'
-VALIDATION_FILE = 'en-it.5000-6500.txt'
+IT_WORD_TO_VEC = 'wiki.es.vec'
+VALIDATION_FILE = 'en-es.5000-6500.txt'
 
 # For Wacky dataset:
 

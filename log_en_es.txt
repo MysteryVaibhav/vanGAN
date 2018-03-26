@@ -1,1 +1,2 @@
-epoch, dis_loss, dis_acc, g_loss, p@1, p@5
+epoch, dis_loss, dis_acc, g_loss
+1,0.58986,0.25554,0.98993{'nn': {1: 0.0, 5: 0.0, 10: 0.0}, 'csls': {1: 0.0, 5: 0.0, 10: 0.0}}

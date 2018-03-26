@@ -1,9 +1,9 @@
-from util import run
+import util
 from properties import *
 from model import *
 from evaluation import get_precision_k
 from trainer import Trainer
-import sys
+from evaluator import Evaluator
 import argparse
 
 
@@ -56,28 +56,31 @@ def main():
     params = parse_arguments()
 
     if params.mode == 0:
-        run(params)
-
-    if params.mode == 1:
-        t = Trainer(params)
-        g = t.train()
-
-    elif params.mode == 2:
-        model_file_path = os.path.join(params.model_dir, params.model_file_name)
-        g = Generator(input_size=g_input_size, output_size=g_output_size)
-        g.load_state_dict(torch.load(model_file_path, map_location='cpu'))
-
-        if torch.cuda.is_available():
-            g = g.cuda()
-
-        print("Done!")
+        u = util.Utils(params)
+        u.run()
 
     else:
-        raise "Invalid flag!"
+        src_emb_array, tgt_emb_array = util.load_npy_two(params.data_dir, 'src.npy', 'tgt.npy')
+        src_emb = util.convert_to_embeddings(src_emb_array)
+        tgt_emb = util.convert_to_embeddings(tgt_emb_array)
+        eval = Evaluator(params, tgt_emb.weight.data, [1, 5, 10], ['nn', 'csls'])
 
-    # source_word_list = true_dict.keys()
-    # true_dict = get_true_dict()
-    # print("P@{} : {}".format(K, get_precision_k(K, g, true_dict, method='csls_faster')))
+        if params.mode == 1:
+            t = Trainer(params)
+            g = t.train(src_emb, tgt_emb, eval)
+
+        elif params.mode == 2:
+            model_file_path = os.path.join(params.model_dir, params.model_file_name)
+            g = Generator(input_size=g_input_size, output_size=g_output_size)
+            g.load_state_dict(torch.load(model_file_path, map_location='cpu'))
+
+            if torch.cuda.is_available():
+                g = g.cuda()
+
+            eval.get_all_precisions(g(src_emb.weight).data)
+
+        else:
+            raise "Invalid flag!"
 
 
 if __name__ == '__main__':

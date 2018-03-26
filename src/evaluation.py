@@ -54,22 +54,26 @@ def get_knn_indices(k, xb, xq):
     return distances, knn_indices
 
 
-def CSLS_fast(k, xb, xq):
+def CSLS_fast(k, xb, xq, x_source):
     distances, _ = get_knn_indices(csls_k, xb, xq)
     r_source = np.average(distances, axis=1)
-    distances, _ = get_knn_indices(csls_k, xq, xb)
+    distances, _ = get_knn_indices(csls_k, x_source, xb)
     r_target = np.average(distances, axis=1)
 
-    n_source = np.shape(r_source)[0]
-    n_target = np.shape(r_target)[0]
+    # n_source = np.shape(r_source)[0]
+    # n_target = np.shape(r_target)[0]
 
-    knn_indices = []
-    for i in range(n_source):
-        src_wemb = xq[i, :]
-        c = np.sum(np.multiply(np.repeat(src_wemb[np.newaxis, :],  n_target, axis=0), xb), axis=1)
-        rs = np.repeat(r_source[i],  n_target, axis=0)
-        csls = 2*c - rs - r_target
-        knn_indices.append(np.argsort(csls)[-k:])
+    csls = 2 * np.matmul(xq, xb.T) - (r_source[:, None] + r_target[None, :])
+    knn_indices = np.argsort(csls)[:, -k:]
+
+    # knn_indices = []
+    # for i in range(n_source):
+    #     print(i)
+    #     src_wemb = xq[i, :]
+    #     c = np.sum(np.multiply(np.repeat(src_wemb[np.newaxis, :],  n_target, axis=0), xb), axis=1)
+    #     rs = np.repeat(r_source[i],  n_target, axis=0)
+    #     csls = 2*c - rs - r_target
+    #     knn_indices.append(np.argsort(csls)[-k:])
 
     return knn_indices
 
@@ -105,23 +109,26 @@ def get_mapped_embeddings(g, data_dir, source_word_list):
     source_vec_dict, target_vec_dict = get_embeddings_dicts(data_dir)
     target_word_list = list(target_vec_dict.keys())
 
-    # word_tensors = to_tensor(np.array([source_vec_dict[source_word] for source_word in source_word_list]).astype(float))
-    # mapped_embeddings = g(to_variable(word_tensors)).data.cpu().numpy()
+    word_tensors = to_tensor(np.array([source_vec_dict[source_word] for source_word in source_word_list]).astype(float))
+    mapped_embeddings = g(to_variable(word_tensors)).data.cpu().numpy()
 
-    mapped_embeddings = np.zeros((len(source_word_list), g_input_size))
-    for (i, source_word) in enumerate(source_word_list):
-        word_tensor = to_tensor(np.array(source_vec_dict[source_word]).astype(float))
-        mapped_embeddings[i] = g(to_variable(word_tensor)).data.cpu().numpy()
+    # mapped_embeddings = np.zeros((len(source_word_list), g_input_size))
+    # for (i, source_word) in enumerate(source_word_list):
+    #     word_tensor = to_tensor(np.array(source_vec_dict[source_word]).astype(float))
+    #     mapped_embeddings[i] = g(to_variable(word_tensor)).data.cpu().numpy()
     return mapped_embeddings, target_word_list
 
 
 def get_precision_k(k, g, true_dict, data_dir, method='csls'):
     source_word_list = true_dict.keys()
 
-    _, xb = get_embeddings(data_dir)
+    x_source, xb = get_embeddings(data_dir)
     xb = np.float32(xb)
+    x_source = np.float32(x_source)
     row_sum = np.linalg.norm(xb, axis=1)
     xb = xb/row_sum[:, np.newaxis]
+    row_sum = np.linalg.norm(x_source, axis=1)
+    x_source = x_source/row_sum[:, np.newaxis]
 
     xq, target_word_list = get_mapped_embeddings(g, data_dir, source_word_list)
     xq = np.float32(xq)
@@ -130,8 +137,9 @@ def get_precision_k(k, g, true_dict, data_dir, method='csls'):
 
     if method == 'nn':
         _, knn_indices = get_knn_indices(k, xb, xq)
+        print(knn_indices)
     elif method == 'csls':
-        knn_indices = CSLS_fast(k, xb, xq)
+        knn_indices = CSLS_fast(k, xb, xq, x_source)
     elif method == 'csls_faster':
         src_emb = convert_to_embeddings(xq)
         tgt_emb = convert_to_embeddings(xb)
