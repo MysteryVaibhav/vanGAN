@@ -5,6 +5,9 @@ from trainer import Trainer
 from evaluator import Evaluator
 import argparse
 import copy
+import os
+
+os.environ['KMP_DUPLICATE_LIB_OK'] = 'TRUE'
 
 def parse_arguments():
     parser = argparse.ArgumentParser(description='Argument Parser for Unsupervised Bilingual Lexicon Induction using GANs')
@@ -60,9 +63,9 @@ def parse_arguments():
 def _get_eval_params(params):
     params = copy.deepcopy(params)
     params.ks = [1, 5, 10]
-    params.methods = ['nn']
+    params.methods = ['nn', 'csls']
     params.models = ['procrustes', 'adv']
-    params.refine = ['without-ref', 'ref']
+    params.refine = ['without-ref', 'with-ref']
     return params
 
 
@@ -99,7 +102,7 @@ def main():
 
             mapped_src_emb = g(src_emb.weight).data
             evaluator.get_all_precisions(mapped_src_emb)
-            print("Unsupervised criterion: ", evaluator.calc_unsupervised_criterion(mapped_src_emb))
+            # print("Unsupervised criterion: ", evaluator.calc_unsupervised_criterion(mapped_src_emb))
 
         else:
             raise "Invalid flag!"
