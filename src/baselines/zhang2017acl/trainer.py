@@ -51,6 +51,8 @@ class Trainer:
         # Define samplers
         vocab_size = params.most_frequent_sampling_size
         try:
+            if params.uniform_sampling:
+                raise FileNotFoundError
             weights_src, weights_tgt = get_frequencies()
             self.logger.info('Use frequencies for sampling')
             weights_src = downsample_frequent_words(weights_src)
@@ -109,10 +111,10 @@ class Trainer:
 
             # Generator
             embs_tgt_mapped = g(embs_src)  # target embs mapped from source embs
-            g_loss = -(d_tgt(embs_tgt_mapped) + 1e-16).log().mean()  # discriminate in the trg side
+            g_loss = -(d_tgt(embs_tgt_mapped, inject_noise=False) + 1e-16).log().mean()  # discriminate in the trg side
             if d_src is not None:  # Model 2
                 embs_src_mapped = g(embs_tgt, tgt2src=True)  # src embs mapped from trg embs
-                g_loss += -(d_src(embs_src_mapped) + 1e-16).log().mean()  # target-to-source
+                g_loss += -(d_src(embs_src_mapped, inject_noise=False) + 1e-16).log().mean()  # target-to-source
 
             if lambda_r > 0:  # Model 3
                 embs_src_r = g(embs_tgt_mapped, tgt2src=True)  # reconstructed src embs

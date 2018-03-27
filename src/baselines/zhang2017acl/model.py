@@ -30,19 +30,22 @@ class Discriminator(nn.Module):
         self.map2.bias.data = torch.zeros(output_size)
         self.sigma = sigma
 
-    def forward(self, x):
+    def forward(self, x, inject_noise=True):
         gpu = x.data.is_cuda  # Using GPU?
 
-        # Inject multiplicative Gaussian noise to input
-        noise = Variable(torch.FloatTensor(x.size()).normal_(1.0, self.sigma),
-                         volatile=False)
-        if gpu:
-            noise = noise.cuda()
-        h = self.activation1(self.map1(x * noise))
+        if inject_noise:  # inject multiplicative Gaussian noise to input
+            noise = Variable(torch.FloatTensor(x.size()).normal_(1.0, self.sigma),
+                             volatile=False)
+            if gpu:
+                noise = noise.cuda()
+            h = self.activation1(self.map1(x * noise))
+        else:
+            h = self.activation1(self.map1(x))
 
-        # Inject multiplicative Gaussian noise to hidden units
-        noise = Variable(torch.FloatTensor(h.size()).normal_(1.0, self.sigma),
-                         volatile=False)
-        if gpu:
-            noise = noise.cuda()
-        return F.sigmoid(self.map2(h * noise)).view(-1)
+        if inject_noise:  # inject multiplicative Gaussian noise to hidden units
+            noise = Variable(torch.FloatTensor(h.size()).normal_(1.0, self.sigma),
+                             volatile=False)
+            if gpu:
+                noise = noise.cuda()
+            return F.sigmoid(self.map2(h * noise)).view(-1)
+        return F.sigmoid(self.map2(h)).view(-1)
