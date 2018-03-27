@@ -17,18 +17,6 @@ from util import get_frequencies
 from util import init_logger
 from util import downsample_frequent_words
 
-import matplotlib
-matplotlib.use('agg')
-import matplotlib.pyplot as plt
-#from train_validate import get_precision_k
-
-
-def init_xavier(m):
-    if type(m) == torch.nn.Linear:
-        fan_in = m.weight.size()[1]
-        fan_out = m.weight.size()[0]
-        std = np.sqrt(6.0 / (fan_in + fan_out))
-        m.weight.data.normal_(0,std)
 
 class Trainer:
     def __init__(self, params):
@@ -178,9 +166,11 @@ class Trainer:
                 self.logger.info(' '.join(status))
 
                 if itr % 1000 == 0:
+                    filename = path.join(dir_model, 'g{}_checkpoint.pth'.format(gan_model))
+                    self.logger.info('Save a model to ' + filename)
+                    g.save(filename)
                     all_precisions = evaluator.get_all_precisions(g(src_emb.weight).data)
                     print(json.dumps(all_precisions))
-
             if itr > max_iters:
                 break
 
@@ -195,4 +185,7 @@ class Trainer:
                 g.save(filename)
                 all_precisions = evaluator.get_all_precisions(g(src_emb.weight).data)
                 print(json.dumps(all_precisions))
+        filename = path.join(dir_model, 'g{}_final.pth'.format(gan_model))
+        self.logger.info('Save a model to ' + filename)
+        g.save(filename)
         return g
