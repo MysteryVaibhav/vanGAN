@@ -125,7 +125,7 @@ class Evaluator:
                         all_precisions[key][mod][r][m] = {}
 
                         for k in self.ks:
-                            if key == 'validation-new' and mod == 'adv' and r == 'ref' and m == 'nn' and k == 1:
+                            if key == 'validation-new' and mod == 'adv' and r == 'with-ref' and m == 'csls' and k == 1:
                                 buckets = 5
                                 save = True
 
