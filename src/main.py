@@ -13,6 +13,8 @@ def parse_arguments():
     parser.add_argument("--src_file", dest="src_file", type=str, default=EN_WORD_TO_VEC)
     parser.add_argument("--tgt_file", dest="tgt_file", type=str, default=IT_WORD_TO_VEC)
     parser.add_argument("--validation_file", dest="validation_file", type=str, default=VALIDATION_FILE)
+    parser.add_argument("--full_bilingual_file", dest="full_bilingual_file", type=str, default=FULL_BILINGUAL_FILE)
+    parser.add_argument("--new_validation_file", dest="new_validation_file", type=str, default=NEW_VAL_FILE)
 
     parser.add_argument("--g_input_size", dest="g_input_size", type=int, default=g_input_size)
     parser.add_argument("--g_output_size", dest="g_output_size", type=int, default=g_output_size)
@@ -77,7 +79,9 @@ def main():
             if torch.cuda.is_available():
                 g = g.cuda()
 
-            eval.get_all_precisions(g(src_emb.weight).data)
+            mapped_src_emb = g(src_emb.weight).data
+            eval.get_all_precisions(mapped_src_emb)
+            # eval.calc_unsupervised_criterion(mapped_src_emb)
 
         else:
             raise "Invalid flag!"

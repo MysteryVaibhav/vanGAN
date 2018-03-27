@@ -12,6 +12,8 @@ if not os.path.exists(MODEL_DIR):
 EN_WORD_TO_VEC = 'wiki.en.vec'
 IT_WORD_TO_VEC = 'wiki.es.vec'
 VALIDATION_FILE = 'en-es.5000-6500.txt'
+FULL_BILINGUAL_FILE = 'en-es.txt'
+NEW_VAL_FILE = 'new_val.txt'
 
 # For Wacky dataset:
 
