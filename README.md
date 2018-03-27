@@ -4,7 +4,7 @@
 Requirements for compiling:
 ------------------------------
 - If using wackyDataset:
-    - (Download data from http://clic.cimec.unitn.it/~georgiana.dinu/down/)
+    - Download data from http://clic.cimec.unitn.it/~georgiana.dinu/down/
     - Make sure you have these 3 files in the data directory :
         - EN.200K.cbow1_wind5_hs0_neg10_size300_smpl1e-05.txt
         - IT.200K.cbow1_wind5_hs0_neg10_size300_smpl1e-05.txt
@@ -19,26 +19,52 @@ Requirements for compiling:
     # Test file containing translations for 1500 en words (Example: en-it)
     wget https://s3.amazonaws.com/arrival/dictionaries/en-it.5000-6500.txt
     ```
-- Follow the steps below to install Faiss (library for efficient similarity search on GPU)
+    - Monolingual corpora for other languages can be found at: https://github.com/facebookresearch/fastText/
+    - Bilingual corpora for other languages can be found at: https://github.com/facebookresearch/MUSE
+- Copy new validation file (example: en-it-new.txt), gold file (example: en-it.0-5000.txt) from new_val_sets/ and bilingual_dicts/ directories (respectively) into data/ folder.
+-
+- Follow the steps mentioned below to install Faiss (library for efficient similarity search on GPU)
   or simply use "conda install faiss-gpu -c pytorch" [Note conda install will only work with cuda >= 9.0]
 
 Script to compile:
 ------------------------------
-First run util.py to create the .npy files for embeddings.
+First run main.py in mode-0 to create the .npy files for embeddings.
 ```
-$ python util.py
-Reading english word embeddings...
-Reading italian word embeddings...
-Creating word vectors for both languages...
+$ python main.py --mode 0
+Failed to load GPU Faiss: No module named 'swigfaiss_gpu'
+Faiss falling back to CPU-only.
+Reading source word embeddings...
+Done.
+(200000, 300)
+Reading target word embeddings...
+Done.
+(200000, 300)
 Reading validation file...
-Done !!
+Reading gold file...
+Constructing source word-id map...
+Done.
+Constructing target word-id map...
+Everything Done.
 ```
-Run train_validate.py to start training. In the end it will calculate P@k, and generate a plot of discriminator accuracy, generator loss vs epochs 
+Run main.py in mode-1 to start training. In the end it will calculate P@k, and generate a plot of discriminator accuracy, generator loss vs epochs
 ```
-$ python train_validate.py
+$ python main.py --mode 1
+Reading embedding numpy files...
+Done.
+Converting arrays to embedding layers...
+Done.
 Epoch 0 : Discriminator Loss: 0.67081, Discriminator Accuracy: 0.63142, Generator Loss: 0.73843, Time elapsed 2.72 mins
 Epoch 1 : Discriminator Loss: 0.67737, Discriminator Accuracy: 0.63803, Generator Loss: 0.71354, Time elapsed 2.71 mins
 P@5 : 0.0
+```
+Run main.py in mode-2 for evaluation. The saved model should be kept in models/ directory. P@k gets calculated for all models (adv, procrustes), methods (csls, nn), refinement/no-refinement, 2 validation sets and k = 1, 5, 10. You can selectively run evaluations by modifying _get_eval_params function in main.py. Full evaluation takes ~15 min.
+```
+$ python main.py --mode 2
+Reading embedding numpy files...
+Done.
+Converting arrays to embedding layers...
+Done.
+...
 ```
 ![alt text](https://github.com/MysteryVaibhav/vanGAN/blob/gan/src/d_g.png)
 
