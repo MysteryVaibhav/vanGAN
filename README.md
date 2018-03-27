@@ -22,7 +22,6 @@ Requirements for compiling:
     - Monolingual corpora for other languages can be found at: https://github.com/facebookresearch/fastText/
     - Bilingual corpora for other languages can be found at: https://github.com/facebookresearch/MUSE
 - Copy new validation file (example: en-it-new.txt), gold file (example: en-it.0-5000.txt) from new_val_sets/ and bilingual_dicts/ directories (respectively) into data/ folder.
--
 - Follow the steps mentioned below to install Faiss (library for efficient similarity search on GPU)
   or simply use "conda install faiss-gpu -c pytorch" [Note conda install will only work with cuda >= 9.0]
 
