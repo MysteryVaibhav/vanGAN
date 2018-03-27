@@ -12,11 +12,11 @@ Requirements for compiling:
 - If using wiki fastText embeddings:
     - Download data in the 'data' directory:
     ```
-    # English fastText Wikipedia embeddings (~6G)
+    # Source fastText Wikipedia embeddings (~6G) (Example: en)
     curl -Lo wiki.en.vec https://s3-us-west-1.amazonaws.com/fasttext-vectors/wiki.en.vec
-    # Italian fastText Wikipedia embeddings (~2G)
+    # Target fastText Wikipedia embeddings (~2G) (Example: it)
     curl -Lo wiki.it.vec https://s3-us-west-1.amazonaws.com/fasttext-vectors/wiki.it.vec
-    # Test file containing translations for 1500 en words
+    # Test file containing translations for 1500 en words (Example: en-it)
     wget https://s3.amazonaws.com/arrival/dictionaries/en-it.5000-6500.txt
     ```
 - Follow the steps below to install Faiss (library for efficient similarity search on GPU)

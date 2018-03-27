@@ -12,8 +12,9 @@ if not os.path.exists(MODEL_DIR):
 EN_WORD_TO_VEC = 'wiki.en.vec'
 IT_WORD_TO_VEC = 'wiki.es.vec'
 VALIDATION_FILE = 'en-es.5000-6500.txt'
-FULL_BILINGUAL_FILE = 'en-es.txt'
-NEW_VAL_FILE = 'new_val.txt'
+FULL_FILE = 'en-es.txt'
+NEW_VAL_FILE = 'en-es-new.txt'
+GOLD_FILE = 'en-es.0-5000.txt'
 
 # For Wacky dataset:
 
@@ -56,9 +57,11 @@ K = 5
 top_frequent_words = 200000
 
 # refinement
-top_refine = 15000
+refine_top = 15000
+cosine_top = 10000
 
 # data processing, train or eval
 mode = 1
 
 csls_k = 10
+dict_max_top = 10000

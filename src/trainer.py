@@ -10,7 +10,6 @@ from timeit import default_timer as timer
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
-from evaluation import get_precision_k
 import os
 from datetime import timedelta
 import json
