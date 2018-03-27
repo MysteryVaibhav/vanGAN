@@ -7,12 +7,10 @@ DATA_DIR = path.join(ROOT_DIR, 'data/')
 MODEL_DIR = path.join(ROOT_DIR, 'models')
 
 # See ../../../data/README.md for setting up
-lang_src = 'es'
-lang_trg = 'en'
-SRC_WORD_VEC = 'zhang2017acl.es-en.es.vec'
-TRG_WORD_VEC = 'zhang2017acl.es-en.en.vec'
-SRC_WORD_FREQ = 'zhang2017acl.es-en.es.freq'
-TRG_WORD_FREQ = 'zhang2017acl.es-en.en.freq'
+EN_WORD_TO_VEC = 'zhang2017acl.es-en.es.vec'
+IT_WORD_TO_VEC = 'zhang2017acl.es-en.en.vec'
+EN_WORD_FREQ = 'zhang2017acl.es-en.es.freq'
+IT_WORD_FREQ = 'zhang2017acl.es-en.en.freq'
 VALIDATION_FILE = 'zhang2017acl.es-en.test.txt'
 
 # Model Hyper-Parameters
@@ -32,3 +30,4 @@ most_frequent_sampling_size = 75000
 
 # Validation
 top_frequent_words = 200000
+csls_k = 10

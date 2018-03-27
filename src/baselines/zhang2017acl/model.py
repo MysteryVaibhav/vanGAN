@@ -10,8 +10,8 @@ class Generator(nn.Module):
         self.W = nn.Parameter(torch.FloatTensor(input_size, output_size))
         nn.init.orthogonal(self.W)
 
-    def forward(self, x, trg2src=True):
-        if trg2src:
+    def forward(self, x, tgt2src=False):
+        if tgt2src:
             return x.matmul(self.W.t())  # target to source
         return x.matmul(self.W)  # source to target
 
@@ -20,15 +20,18 @@ class Generator(nn.Module):
 
 
 class Discriminator(nn.Module):
-    def __init__(self, input_size, output_size, hidden_size=500, sigma=0.5):
+    def __init__(self, input_size, hidden_size=500, output_size=1, sigma=0.5):
         super(Discriminator, self).__init__()
         self.map1 = nn.Linear(input_size, hidden_size)
+        nn.init.xavier_uniform(self.map1.weight)
         self.activation1 = nn.ReLU()
         self.map2 = nn.Linear(hidden_size, output_size)
+        nn.init.xavier_uniform(self.map2.weight)
+        self.map2.bias.data = torch.zeros(output_size)
         self.sigma = sigma
 
     def forward(self, x):
-        gpu = (type(x.data) is torch.cuda.FloatTensor)  # Using GPU?
+        gpu = x.data.is_cuda  # Using GPU?
 
         # Inject multiplicative Gaussian noise to input
         noise = Variable(torch.FloatTensor(x.size()).normal_(1.0, self.sigma),
