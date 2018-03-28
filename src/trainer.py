@@ -13,24 +13,25 @@ import matplotlib.pyplot as plt
 import os
 from datetime import timedelta
 import json
+import copy
+from evaluator import Evaluator
 
 
 class Trainer:
     def __init__(self, params):
         self.params = params
 
-    def train(self, src_emb, tgt_emb, eval):
+    def train(self, src_emb, tgt_emb):
         params = self.params
         # Load data
         if not os.path.exists(params.data_dir):
             raise "Data path doesn't exists: %s" % params.data_dir
 
-        # en, it = get_embeddings(params.data_dir)  # Vocab x Embedding_dimension
-        # en = convert_to_embeddings(en)
-        # it = convert_to_embeddings(it)
-
         en = src_emb
         it = tgt_emb
+
+        params = _get_eval_params(params)
+        eval = Evaluator(params, src_emb.weight.data, tgt_emb.weight.data)
 
         # Create models
         g = Generator(input_size=params.g_input_size, output_size=params.g_output_size)
@@ -57,11 +58,6 @@ class Trainer:
         # logs for plotting later
         log_file = open("log_en_es.txt", "w")
         log_file.write("epoch, dis_loss, dis_acc, g_loss\n")
-
-        # # Initial precision without training
-        # p_1 = get_precision_k(1, g, true_dict, params.data_dir, method='nn')
-        # p_5 = get_precision_k(5, g, true_dict, params.data_dir, method='nn')
-        # log_file.write("0, -, -, -, {}, {}\n".format(p_1, p_5))
 
         try:
             for epoch in range(params.num_epochs):
@@ -111,11 +107,6 @@ class Trainer:
                         sys.stdout.write("[%d/%d] ::                                     Generator Loss: %f \r" % (
                             mini_batch, params.iters_in_epoch // params.mini_batch_size, np.asscalar(np.mean(g_losses))))
                         sys.stdout.flush()
-
-                    # if mini_batch % 125 == 0:
-                    #     print("Iteration {} : Discriminator Loss: {:.5f}, Discriminator Accuracy: {:.5f}, Generator Loss: {:.5f}, Time elapsed {:.2f} sec".
-                    #           format(mini_batch * 32, np.asscalar(np.mean(d_losses)), hit / total, np.asscalar(np.mean(g_losses)),
-                    #                  round(timer() - start_time)))
 
                 d_acc_epochs.append(hit / total)
                 g_loss_epochs.append(np.asscalar(np.mean(g_losses)))
@@ -209,3 +200,12 @@ def _clip(d, clip):
     if clip > 0:
         for x in d.parameters():
             x.data.clamp_(-clip, clip)
+
+
+def _get_eval_params(params):
+    params = copy.deepcopy(params)
+    params.ks = [1]
+    params.methods = ['nn']
+    params.models = ['adv']
+    params.refine = ['without-ref']
+    return params

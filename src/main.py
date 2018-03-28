@@ -84,14 +84,14 @@ def main():
         src_emb = util.convert_to_embeddings(src_emb_array)
         tgt_emb = util.convert_to_embeddings(tgt_emb_array)
         print("Done.")
-        params = _get_eval_params(params)
-        evaluator = Evaluator(params, src_emb.weight.data, tgt_emb.weight.data)
 
         if params.mode == 1:
             t = Trainer(params)
-            g = t.train(src_emb, tgt_emb, eval)
+            g = t.train(src_emb, tgt_emb)
 
         elif params.mode == 2:
+            params = _get_eval_params(params)
+            evaluator = Evaluator(params, src_emb.weight.data, tgt_emb.weight.data)
 
             model_file_path = os.path.join(params.model_dir, params.model_file_name)
             g = Generator(input_size=g_input_size, output_size=g_output_size)

@@ -5,6 +5,7 @@ import json
 import platform
 import time
 from sklearn.utils.extmath import randomized_svd
+import codecs
 
 op_sys = platform.system()
 if op_sys == 'Darwin':
@@ -312,11 +313,19 @@ def _save_learnt_dictionary(data_dir, true_dict, tgt_id2wrd, knn_indices, correc
         for knn in knn_indices[i]:
             learnt_dict[w]['predicted'].append(tgt_id2wrd[knn])
 
-    with open(data_dir + 'correct.txt', 'w', encoding='utf-8') as f:
-        f.write(json.dumps(learnt_dict_correct, indent=2))
+    with codecs.open(data_dir + 'correct.txt', 'w', encoding='utf-8') as f:
+        f.write(json.dumps(learnt_dict_correct, ensure_ascii=False, indent=2))
 
-    with open(data_dir + 'incorrect.txt', 'w', encoding='utf-8') as f:
-        f.write(json.dumps(learnt_dict_incorrect, indent=2))
+    with codecs.open(data_dir + 'incorrect.txt', 'w', encoding='utf-8') as f:
+        f.write(json.dumps(learnt_dict_incorrect, ensure_ascii=False, indent=2))
+
+    _write_csv(data_dir, 'correct.csv', learnt_dict_correct)
+    _write_csv(data_dir, 'incorrect.csv', learnt_dict_incorrect)
 
 
-
+def _write_csv(data_dir, fname, learnt_dict):
+    with codecs.open(data_dir + fname, 'w', encoding='utf-8') as f:
+        f.write("Source Word, True Translation, Predicted Translation\n")
+        for src_wrd in learnt_dict.keys():
+            true_and_predicted = learnt_dict[src_wrd]
+            f.write(src_wrd + ", " + str(true_and_predicted['true']).replace(",", "|") + ", " + str(true_and_predicted['predicted']).replace(",", "|") + "\n")

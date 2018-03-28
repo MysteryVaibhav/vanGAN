@@ -1,1 +1,5 @@
 epoch, dis_loss, dis_acc, g_loss
+1,0.55945,0.20467,1.13138
+{'validation': {'adv': {'without-ref': {'nn': {1: 0.0}}}}, 'validation-new': {'adv': {'without-ref': {'nn': {1: 0.0}}}}}
+2,0.55364,0.20615,1.19236
+{'validation': {'adv': {'without-ref': {'nn': {1: 0.0}}}}, 'validation-new': {'adv': {'without-ref': {'nn': {1: 0.0}}}}}
