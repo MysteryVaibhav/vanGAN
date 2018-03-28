@@ -33,9 +33,9 @@ d_hidden_size = 2048   # Discriminator complexity
 d_output_size = 1    # Single dimension for 'real' vs. 'fake'
 mini_batch_size = 32
 
-d_learning_rate = 0.1
-g_learning_rate = 0.1
-num_epochs = 20
+d_learning_rate = 0.2
+g_learning_rate = 0.2
+num_epochs = 7
 d_steps = 5  # 'k' steps in the original GAN paper. Can put the discriminator on higher training freq than generator
 g_steps = 1
 smoothing = 0.1   # As per what is mentioned in the paper
@@ -43,14 +43,15 @@ beta = 0.001
 clip_value = 0
 
 # Training
-iters_in_epoch = 1000000
+iters_in_epoch = 100000
 most_frequent_sampling_size = 75000   # Paper mentions this
 print_every = 1
-lr_decay = 0.98
+lr_decay = 1
 lr_min = 1e-6
 add_noise = 0
 noise_mean = 1.0
 noise_var = 0.2
+num_random_seeds = 15    # Number of different seeds to try
 
 # Validation
 K = 5
