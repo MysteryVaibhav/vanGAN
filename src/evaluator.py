@@ -96,6 +96,9 @@ class Evaluator:
         save = False
 
         for it, v in enumerate(self.valid):
+            if torch.cuda.is_available():
+                v['valid_src_word_ids'] = v['valid_src_word_ids'].cuda()
+            
             if it == 0:
                 key = 'validation'
             else:
