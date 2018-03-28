@@ -6,6 +6,7 @@ from evaluator import Evaluator
 import argparse
 import copy
 import os
+import numpy as np
 
 os.environ['KMP_DUPLICATE_LIB_OK'] = 'TRUE'
 
@@ -104,6 +105,21 @@ def main():
             mapped_src_emb = g(src_emb.weight).data
             evaluator.get_all_precisions(mapped_src_emb)
             # print("Unsupervised criterion: ", evaluator.calc_unsupervised_criterion(mapped_src_emb))
+
+            # unsupervised_criterion = []
+            #
+            # for i in range(40):
+            #     model_file_path = os.path.join(params.model_dir, 'generator_weights_en_es_' + str(i+1) + '.t7')
+            #     g = Generator(input_size=g_input_size, output_size=g_output_size)
+            #     g.load_state_dict(torch.load(model_file_path, map_location='cpu'))
+            #     if torch.cuda.is_available():
+            #         g = g.cuda()
+            #     mapped_src_emb = g(src_emb.weight).data
+            #     uc = evaluator.calc_unsupervised_criterion(mapped_src_emb)
+            #     print("i: %d, uc: %f" % (i, uc))
+            #     unsupervised_criterion.append(uc)
+            #
+            # np.save("uc.npy", np.array(unsupervised_criterion))
 
         else:
             raise "Invalid flag!"
