@@ -1,7 +1,10 @@
 import numpy as np
 import torch
+import random
+
 seed = 0
 np.random.seed(seed)
+random.seed(seed)
 
 
 class Utils:
@@ -11,35 +14,38 @@ class Utils:
         self.src_file = params.src_file
         self.tgt_file = params.tgt_file
         self.validation_file = params.validation_file
-        self.full_bilingual_file = params.full_bilingual_file
+        self.full_file = params.full_file
         self.new_validation_file = params.new_validation_file
+        self.gold_file = params.gold_file
         self.top_frequent_words = params.top_frequent_words
 
     def run(self):
-        # print("Reading source word embeddings...")
-        # word2vec_src = self.save_word_vectors(self.src_file, save=True, save_file_as='src')
-        # print("Done.")
-        # print(word2vec_src.shape)
-        # print("Reading target word embeddings...")
-        # word2vec_tgt = self.save_word_vectors(self.tgt_file, save=True, save_file_as='tgt')
-        # print("Done.")
-        # print(word2vec_tgt.shape)
-        # print("Reading validation file...")
-        # self.save_validation_set(self.validation_file, save=True)
-        full_bilingual_dict = self.save_validation_set(self.full_bilingual_file, save=False)
-        l = list(full_bilingual_dict.keys())
-        word2id = dict(zip(np.arange(len(l)), l))
-        self.construct_new_val_set(full_bilingual_dict, word2id)
-        self.save_validation_set(self.new_validation_file, save_file_as="validation_new", save=True)
+        print("Reading source word embeddings...")
+        word2vec_src = self.save_word_vectors(self.src_file, save=True, save_file_as='src')
+        print("Done.")
+        print(word2vec_src.shape)
+        print("Reading target word embeddings...")
+        word2vec_tgt = self.save_word_vectors(self.tgt_file, save=True, save_file_as='tgt')
+        print("Done.")
+        print(word2vec_tgt.shape)
+        print("Reading validation file...")
+        self.read_dictionary(self.validation_file, save=True)
+        print("Reading gold file...")
+        self.read_dictionary(self.gold_file, save_file_as='gold', save=True)
+        print("Constructing source word-id map...")
+        self.save_word_ids_dicts(self.src_file, save=True, save_file_as='src_ids')
+        print("Done.")
+        print("Constructing target word-id map...")
+        self.save_word_ids_dicts(self.tgt_file, save=True, save_file_as='tgt_ids')
 
-        # print("Done.")
-
-        # print("Constructing source word-id map...")
-        # self.save_word_ids_dicts(self.src_file, save=True, save_file_as='src_ids')
-        # print("Done.")
-        # print("Constructing target word-id map...")
-        # self.save_word_ids_dicts(self.tgt_file, save=True, save_file_as='tgt_ids')
-        # print("Everything Done.")
+        # print("Reading full file...")
+        # full_dict = self.read_dictionary(self.full_file, save=False)
+        # all_src_words = list(full_dict.keys())
+        # word2id = dict(zip(np.arange(len(all_src_words)), all_src_words))
+        # print("Constructing new validation set...")
+        # self.construct_new_val_set(full_dict, word2id, self.new_validation_file)
+        self.read_dictionary(self.new_validation_file, save_file_as="validation_new", save=True)
+        print("Everything Done.")
 
     def save_word_vectors(self, file, save=False, save_file_as='src'):
         embeddings = []
@@ -83,7 +89,7 @@ class Utils:
             np.save(self.data_dir + save_file_as + '.npy', word2id)
         return word2id
 
-    def save_validation_set(self, file, save=False, save_file_as='validation'):
+    def read_dictionary(self, file, save=False, save_file_as='validation'):
         true_dict = {}
         with open(self.data_dir + file, 'r', encoding='utf-8') as f:
             rows = f.readlines()
@@ -98,7 +104,7 @@ class Utils:
             np.save(self.data_dir + save_file_as + '.npy', true_dict)
         return true_dict
 
-    def construct_new_val_set(self, full_bilingual_dict, word2id):
+    def construct_new_val_set(self, full_dict, word2id, fname):
         n = len(list(word2id.keys()))
         indices = []
         buckets = 5
@@ -107,14 +113,16 @@ class Utils:
         for i in range(buckets):
             lo = int(i * n/buckets)
             hi = int((i+1) * n/buckets)
-            indices.extend(np.random.randint(lo, hi, size=num_per_bucket).tolist())
+            indices.extend(random.sample(range(lo, hi, 1), num_per_bucket))
 
-        with open(self.data_dir + 'new_val.txt', 'w', encoding='utf-8') as f:
+        indices = sorted(indices)
+        all_words = []
+        with open(self.data_dir + fname, 'w', encoding='utf-8') as f:
             for i in indices:
                 wrd = word2id[i]
-                for tgt in full_bilingual_dict[wrd]:
+                all_words.append(wrd)
+                for tgt in full_dict[wrd]:
                     f.write(wrd + " " + tgt + "\n")
-
 
 
 def load_npy_one(data_dir, fname):
@@ -132,13 +140,13 @@ def load_npy_two(data_dir, src_fname, tgt_fname, dict=False):
 
 
 # Validation set in a dictionary form {src_wrd: [tgt_wrd_1, tgt_wrd_2, ...]}
-def get_validation_set_ids(data_dir, validation_fname='validation.npy'):
-    val_dict = load_npy_one(data_dir, validation_fname)
+def map_dict2ids(data_dir, dict_fname='validation.npy'):
+    dict_wrd = load_npy_one(data_dir, dict_fname)
     src_ids, tgt_ids = load_npy_two(data_dir, 'src_ids.npy', 'tgt_ids.npy', dict=True)
-    val_dict_ids = {}
-    for src_wrd, tgt_list in val_dict.items():
-        val_dict_ids[src_ids[src_wrd]] = [tgt_ids[tgt_wrd] for tgt_wrd in tgt_list]
-    return val_dict_ids
+    dict_ids = {}
+    for src_wrd, tgt_list in dict_wrd.items():
+        dict_ids[src_ids[src_wrd]] = [tgt_ids[tgt_wrd] for tgt_wrd in tgt_list]
+    return dict_ids
 
 
 def convert_to_embeddings(emb_array):

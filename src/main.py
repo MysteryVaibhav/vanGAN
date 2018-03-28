@@ -1,11 +1,13 @@
 import util
 from properties import *
 from model import *
-from evaluation import get_precision_k
 from trainer import Trainer
 from evaluator import Evaluator
 import argparse
+import copy
+import os
 
+os.environ['KMP_DUPLICATE_LIB_OK'] = 'TRUE'
 
 def parse_arguments():
     parser = argparse.ArgumentParser(description='Argument Parser for Unsupervised Bilingual Lexicon Induction using GANs')
@@ -13,8 +15,9 @@ def parse_arguments():
     parser.add_argument("--src_file", dest="src_file", type=str, default=EN_WORD_TO_VEC)
     parser.add_argument("--tgt_file", dest="tgt_file", type=str, default=IT_WORD_TO_VEC)
     parser.add_argument("--validation_file", dest="validation_file", type=str, default=VALIDATION_FILE)
-    parser.add_argument("--full_bilingual_file", dest="full_bilingual_file", type=str, default=FULL_BILINGUAL_FILE)
+    parser.add_argument("--full_file", dest="full_file", type=str, default=FULL_FILE)
     parser.add_argument("--new_validation_file", dest="new_validation_file", type=str, default=NEW_VAL_FILE)
+    parser.add_argument("--gold_file", dest="gold_file", type=str, default=GOLD_FILE)
 
     parser.add_argument("--g_input_size", dest="g_input_size", type=int, default=g_input_size)
     parser.add_argument("--g_output_size", dest="g_output_size", type=int, default=g_output_size)
@@ -44,14 +47,26 @@ def parse_arguments():
 
     parser.add_argument("--K", dest="K", type=int, default=K)
     parser.add_argument("--top_frequent_words", dest="top_frequent_words", type=int, default=top_frequent_words)
-    parser.add_argument("--top_refine", dest="top_refine", type=int, default=top_refine)
+
     parser.add_argument("--csls_k", dest="csls_k", type=int, default=csls_k)
 
     parser.add_argument("--mode", dest="mode", type=int, default=mode)
     parser.add_argument("--model_dir", dest="model_dir", type=str, default=MODEL_DIR)
     parser.add_argument("--model_file_name", dest="model_file_name", type=str, default="generator_weights_best_0.t7")
 
+    parser.add_argument("--refine_top", dest="refine_top", type=int, default=refine_top)
+    parser.add_argument("--cosine_top", dest="cosine_top", type=int, default=cosine_top)
+    parser.add_argument("--mask_procrustes", dest="mask_procrustes", type=int, default=0)
     return parser.parse_args()
+
+
+def _get_eval_params(params):
+    params = copy.deepcopy(params)
+    params.ks = [1, 5, 10]
+    params.methods = ['nn', 'csls']
+    params.models = ['procrustes', 'adv']
+    params.refine = ['without-ref', 'with-ref']
+    return params
 
 
 def main():
@@ -62,16 +77,22 @@ def main():
         u.run()
 
     else:
+        print("Reading embedding numpy files...")
         src_emb_array, tgt_emb_array = util.load_npy_two(params.data_dir, 'src.npy', 'tgt.npy')
+        print("Done.")
+        print("Converting arrays to embedding layers...")
         src_emb = util.convert_to_embeddings(src_emb_array)
         tgt_emb = util.convert_to_embeddings(tgt_emb_array)
-        eval = Evaluator(params, tgt_emb.weight.data, [1, 5, 10], ['nn', 'csls'])
+        print("Done.")
+        params = _get_eval_params(params)
+        evaluator = Evaluator(params, src_emb.weight.data, tgt_emb.weight.data)
 
         if params.mode == 1:
             t = Trainer(params)
             g = t.train(src_emb, tgt_emb, eval)
 
         elif params.mode == 2:
+
             model_file_path = os.path.join(params.model_dir, params.model_file_name)
             g = Generator(input_size=g_input_size, output_size=g_output_size)
             g.load_state_dict(torch.load(model_file_path, map_location='cpu'))
@@ -80,8 +101,8 @@ def main():
                 g = g.cuda()
 
             mapped_src_emb = g(src_emb.weight).data
-            eval.get_all_precisions(mapped_src_emb)
-            # eval.calc_unsupervised_criterion(mapped_src_emb)
+            evaluator.get_all_precisions(mapped_src_emb)
+            # print("Unsupervised criterion: ", evaluator.calc_unsupervised_criterion(mapped_src_emb))
 
         else:
             raise "Invalid flag!"
