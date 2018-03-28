@@ -47,7 +47,7 @@ class Trainer:
             g = Generator(input_size=params.g_input_size, output_size=params.g_output_size)
             d = Discriminator(input_size=params.d_input_size, hidden_size=params.d_hidden_size, output_size=params.d_output_size)
 
-            seed = random.randint(0,1000)
+            seed = random.randint(0, 1000)
             # init_xavier(g)
             # init_xavier(d)
             self.initialize_exp(seed)
