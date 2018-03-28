@@ -34,6 +34,7 @@ def parse_arguments():
     parser.add_argument("--smoothing", dest="smoothing", type=float, default=smoothing)
     parser.add_argument("--beta", dest="beta", type=float, default=beta)
     parser.add_argument("--clip_value", dest="clip_value", type=float, default=clip_value)
+    parser.add_argument("--num_random_seeds", dest="num_random_seeds", type=float, default=num_random_seeds)
 
     parser.add_argument("--iters_in_epoch", dest="iters_in_epoch", type=int, default=iters_in_epoch)
     parser.add_argument("--most_frequent_sampling_size", dest="most_frequent_sampling_size", type=int, default=most_frequent_sampling_size)
