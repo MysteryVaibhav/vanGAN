@@ -43,6 +43,7 @@ def parse_arguments():
     parser.add_argument("--lr_decay", dest="lr_decay", type=float, default=lr_decay)
     parser.add_argument("--lr_min", dest="lr_min", type=float, default=lr_min)
     parser.add_argument("--add_noise", dest="add_noise", type=int, default=add_noise)
+    parser.add_argument("--center_embeddings", dest="center_embeddings", type=int, default=center_embeddings)
 
     parser.add_argument("--noise_mean", dest="noise_mean", type=float, default=noise_mean)
     parser.add_argument("--noise_var", dest="noise_var", type=float, default=noise_var)
@@ -89,7 +90,11 @@ def main():
         src_emb = util.convert_to_embeddings(src_emb_array, use_cuda)
         tgt_emb = util.convert_to_embeddings(tgt_emb_array, use_cuda)
         print("Done.")
-
+        
+        if params.center_embeddings > 0:
+            util.center_embeddings(src_emb.weight.data)
+            util.center_embeddings(tgt_emb.weight.data)
+        
         if params.mode == 1:
             t = Trainer(params)
             g = t.train(src_emb, tgt_emb)

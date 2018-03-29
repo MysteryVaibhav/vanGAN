@@ -183,8 +183,8 @@ class Trainer:
         real = it_batch
         input = torch.cat([fake, real], 0)
         output = to_variable(torch.FloatTensor(2 * params.mini_batch_size).zero_())
-        output[:params.mini_batch_size] = params.smoothing
-        output[params.mini_batch_size:] = 1 - params.smoothing
+        output[:params.mini_batch_size] = 1 - params.smoothing
+        output[params.mini_batch_size:] = params.smoothing
         return input, output
 
     def get_batch_data(self, en, it, g, detach=False):

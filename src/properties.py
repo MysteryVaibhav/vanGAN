@@ -39,7 +39,7 @@ num_epochs = 7
 d_steps = 5  # 'k' steps in the original GAN paper. Can put the discriminator on higher training freq than generator
 g_steps = 1
 smoothing = 0.1   # As per what is mentioned in the paper
-beta = 0.001
+beta = 0.001      # Set this to 0.0001 for en-zh
 clip_value = 0
 
 # Training
@@ -52,6 +52,7 @@ add_noise = 0
 noise_mean = 1.0
 noise_var = 0.2
 num_random_seeds = 15    # Number of different seeds to try
+center_embeddings = 0    # Set this to 1 for en-zh
 
 # Validation
 K = 5
