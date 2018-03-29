@@ -306,12 +306,12 @@ def _save_learnt_dictionary(data_dir, v, tgt_id2wrd, knn_indices, correct_or_not
         bucket = i % 300
         if correct_or_not[i] == 0:
             learnt_dict = learnt_dict_incorrect
-            bucket_list_correct[w] = bucket
-            src_wrd_ids_correct[w] = src_wrd_ids[i]
-        else:
-            learnt_dict = learnt_dict_correct
             bucket_list_incorrect[w] = bucket
             src_wrd_ids_incorrect[w] = src_wrd_ids[i]
+        else:
+            learnt_dict = learnt_dict_correct
+            bucket_list_correct[w] = bucket
+            src_wrd_ids_correct[w] = src_wrd_ids[i]
         learnt_dict[w] = {}
         pass
         learnt_dict[w]['true'] = true_dict[w]
