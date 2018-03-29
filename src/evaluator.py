@@ -303,7 +303,7 @@ def _save_learnt_dictionary(data_dir, v, tgt_id2wrd, knn_indices, correct_or_not
     src_wrd_ids_incorrect = {}
 
     for i, w in enumerate(src_wrds):
-        bucket = i % 300
+        bucket = int(i/300)
         if correct_or_not[i] == 0:
             learnt_dict = learnt_dict_incorrect
             bucket_list_incorrect[w] = bucket
