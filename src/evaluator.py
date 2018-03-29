@@ -17,7 +17,7 @@ else:
 
 
 class Evaluator:
-    def __init__(self, params, src_emb, tgt_emb):
+    def __init__(self, params, src_emb, tgt_emb, use_cuda=False):
         self.data_dir = params.data_dir
         self.ks = params.ks
         self.methods = params.methods
@@ -44,6 +44,7 @@ class Evaluator:
         self.r_source = None
         self.r_target = None
         self.r_target = None
+        self.use_cuda = use_cuda
         self.cosine_top = params.cosine_top
         self.refine_top = params.refine_top
 
@@ -96,7 +97,7 @@ class Evaluator:
         save = False
 
         for it, v in enumerate(self.valid):
-            if torch.cuda.is_available():
+            if torch.cuda.is_available() and self.use_cuda:
                 v['valid_src_word_ids'] = v['valid_src_word_ids'].cuda()
             
             if it == 0:
@@ -148,6 +149,9 @@ class Evaluator:
         return all_precisions
 
     def calc_unsupervised_criterion(self, mapped_src_emb):
+#         if torch.cuda.is_available():
+#             src_wrd_ids = torch.arange(self.cosine_top).type(torch.cuda.LongTensor)
+#         else:
         src_wrd_ids = torch.arange(self.cosine_top).type(torch.LongTensor)
         start_time = time.time()
         xq = mapped_src_emb[src_wrd_ids]
@@ -205,6 +209,9 @@ class Evaluator:
         return self.do_procrustes(pairs)
 
     def learn_refined_dictionary(self, mapped_src_emb, tgt_emb):
+#         if torch.cuda.is_available():
+#             src_wrd_ids = torch.arange(self.refine_top).type(torch.cuda.LongTensor)
+#         else:
         src_wrd_ids = torch.arange(self.refine_top).type(torch.LongTensor)
         top_src_emb = mapped_src_emb[src_wrd_ids]
         r_source = _common_csls_step(self.csls_k, tgt_emb, top_src_emb)
@@ -226,11 +233,18 @@ class Evaluator:
             for tgt in tgt_list:
                 gold_src_ids.append(src)
                 gold_tgt_ids.append(tgt)
+#         if torch.cuda.is_available():
+#             gold_src_tensor = util.to_tensor(np.array(gold_src_ids)).type(torch.cuda.LongTensor)
+#             gold_tgt_tensor = util.to_tensor(np.array(gold_tgt_ids)).type(torch.cuda.LongTensor)
+#         else:
         gold_src_tensor = util.to_tensor(np.array(gold_src_ids)).type(torch.LongTensor)
         gold_tgt_tensor = util.to_tensor(np.array(gold_tgt_ids)).type(torch.LongTensor)
         pairs = torch.cat([gold_src_tensor[:, None], gold_tgt_tensor[:, None]], 1)
         if self.mask_procrustes:
             pairs = _mask(pairs, self.refine_top)
+#         if torch.cuda.is_available():
+#             pairs.type(torch.cuda.LongTensor)
+#         else:
         pairs.type(torch.LongTensor)
         return pairs
 
@@ -263,7 +277,7 @@ def _procrustes(pairs, src_emb, tgt_emb):
     X = np.transpose(src_emb[pairs[:, 0]].cpu().numpy())
     Y = np.transpose(tgt_emb[pairs[:, 1]].cpu().numpy())
     U, Sigma, VT = randomized_svd(np.matmul(Y, np.transpose(X)), n_components=np.shape(X)[0])
-    W = util.to_tensor(np.matmul(U, VT))
+    W = util.to_tensor(np.matmul(U, VT)).type(torch.FloatTensor)
     return W
 
 
@@ -296,7 +310,7 @@ def _calc_prec(n, knn_indices, tgt_word_ids, lo=0):
 
 def _common_csls_step(k, xb, xq):
     distances, _ = _get_knn_indices(k, xb, xq)
-    r = util.to_tensor(np.average(distances, axis=1))
+    r = util.to_tensor(np.average(distances, axis=1)).type(torch.FloatTensor)
     return r
 
 

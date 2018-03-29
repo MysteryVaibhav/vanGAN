@@ -149,11 +149,11 @@ def map_dict2ids(data_dir, dict_fname='validation.npy'):
     return dict_ids
 
 
-def convert_to_embeddings(emb_array):
+def convert_to_embeddings(emb_array, use_cuda=False):
     emb_tensor = to_tensor(emb_array)
     v, d = emb_tensor.size()
     emb = torch.nn.Embedding(v, d)
-    if torch.cuda.is_available():
+    if torch.cuda.is_available() and use_cuda:
         emb = emb.cuda()
     emb.weight.data.copy_(emb_tensor)
     emb.weight.requires_grad = False

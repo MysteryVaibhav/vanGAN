@@ -79,11 +79,14 @@ def main():
 
     else:
         print("Reading embedding numpy files...")
+        use_cuda = False
+        if params.mode == 1:
+            use_cuda = True
         src_emb_array, tgt_emb_array = util.load_npy_two(params.data_dir, 'src.npy', 'tgt.npy')
         print("Done.")
         print("Converting arrays to embedding layers...")
-        src_emb = util.convert_to_embeddings(src_emb_array)
-        tgt_emb = util.convert_to_embeddings(tgt_emb_array)
+        src_emb = util.convert_to_embeddings(src_emb_array, use_cuda)
+        tgt_emb = util.convert_to_embeddings(tgt_emb_array, use_cuda)
         print("Done.")
 
         if params.mode == 1:
@@ -98,10 +101,11 @@ def main():
             g = Generator(input_size=g_input_size, output_size=g_output_size)
             g.load_state_dict(torch.load(model_file_path, map_location='cpu'))
 
-            if torch.cuda.is_available():
-                g = g.cuda()
+#             if torch.cuda.is_available():
+#                 g = g.cuda()
 
             mapped_src_emb = g(src_emb.weight).data
+#             print(mapped_src_emb)
             evaluator.get_all_precisions(mapped_src_emb)
             # print("Unsupervised criterion: ", evaluator.calc_unsupervised_criterion(mapped_src_emb))
 
