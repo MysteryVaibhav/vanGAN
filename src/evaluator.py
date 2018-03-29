@@ -32,7 +32,6 @@ class Evaluator:
 
         self.tgt_emb = tgt_emb
         self.src_emb = src_emb
-        # self.tgt_emb = tgt_emb / tgt_emb.norm(2, 1)[:, None]
 
         self.valid = []
         self.valid.append(self.prepare_val(self.validation_file))
@@ -69,11 +68,6 @@ class Evaluator:
             self.r_target = _common_csls_step(self.csls_k, mapped_src_emb, tgt_emb)
             print("Time taken for making r_target: ", time.time() - start_time)
 
-        # v = self.valid[0]
-        # self.r_source = _common_csls_step(self.csls_k, tgt_emb, mapped_src_emb[v['valid_src_word_ids']])
-        # p = self.get_precision_k(1, tgt_emb, mapped_src_emb, v, method='csls', buckets=None, save=False)
-        # print(p)
-
         adv_mapped_src_emb = mapped_src_emb
 
         if 'procrustes' in self.models:
@@ -84,11 +78,6 @@ class Evaluator:
             start_time = time.time()
             refined_mapped_src_emb = self.get_refined_mapping(mapped_src_emb, tgt_emb)
             print("Time taken for refinement: ", time.time() - start_time)
-
-        # v = self.valid[0]
-        # self.r_source = _common_csls_step(self.csls_k, tgt_emb, mapped_src_emb[v['valid_src_word_ids']])
-        # p = self.get_precision_k(1, tgt_emb, mapped_src_emb, v, method='nn', buckets=None, save=False)
-        # print(p)
 
         start_time = time.time()
         all_precisions = {}
@@ -149,9 +138,6 @@ class Evaluator:
         return all_precisions
 
     def calc_unsupervised_criterion(self, mapped_src_emb):
-#         if torch.cuda.is_available():
-#             src_wrd_ids = torch.arange(self.cosine_top).type(torch.cuda.LongTensor)
-#         else:
         src_wrd_ids = torch.arange(self.cosine_top).type(torch.LongTensor)
         start_time = time.time()
         xq = mapped_src_emb[src_wrd_ids]
@@ -209,9 +195,6 @@ class Evaluator:
         return self.do_procrustes(pairs)
 
     def learn_refined_dictionary(self, mapped_src_emb, tgt_emb):
-#         if torch.cuda.is_available():
-#             src_wrd_ids = torch.arange(self.refine_top).type(torch.cuda.LongTensor)
-#         else:
         src_wrd_ids = torch.arange(self.refine_top).type(torch.LongTensor)
         top_src_emb = mapped_src_emb[src_wrd_ids]
         r_source = _common_csls_step(self.csls_k, tgt_emb, top_src_emb)
@@ -233,18 +216,11 @@ class Evaluator:
             for tgt in tgt_list:
                 gold_src_ids.append(src)
                 gold_tgt_ids.append(tgt)
-#         if torch.cuda.is_available():
-#             gold_src_tensor = util.to_tensor(np.array(gold_src_ids)).type(torch.cuda.LongTensor)
-#             gold_tgt_tensor = util.to_tensor(np.array(gold_tgt_ids)).type(torch.cuda.LongTensor)
-#         else:
         gold_src_tensor = util.to_tensor(np.array(gold_src_ids)).type(torch.LongTensor)
         gold_tgt_tensor = util.to_tensor(np.array(gold_tgt_ids)).type(torch.LongTensor)
         pairs = torch.cat([gold_src_tensor[:, None], gold_tgt_tensor[:, None]], 1)
         if self.mask_procrustes:
             pairs = _mask(pairs, self.refine_top)
-#         if torch.cuda.is_available():
-#             pairs.type(torch.cuda.LongTensor)
-#         else:
         pairs.type(torch.LongTensor)
         return pairs
 
