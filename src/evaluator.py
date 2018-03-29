@@ -173,7 +173,7 @@ class Evaluator:
 
         p, c = _calculate_precision(n, knn_indices, tgt_word_ids, buckets)
         if save:
-            _save_learnt_dictionary(self.data_dir, v['valid_dict'], self.tgt_id2wrd, knn_indices, c)
+            _save_learnt_dictionary(self.data_dir, v, self.tgt_id2wrd, knn_indices, c)
 
         return p
 
@@ -290,15 +290,28 @@ def _common_csls_step(k, xb, xq):
     return r
 
 
-def _save_learnt_dictionary(data_dir, true_dict, tgt_id2wrd, knn_indices, correct_or_not):
+def _save_learnt_dictionary(data_dir, v, tgt_id2wrd, knn_indices, correct_or_not):
+    true_dict = v['valid_dict']
+    src_wrd_ids = v['valid_src_word_ids']
     src_wrds = list(true_dict.keys())
+
     learnt_dict_correct = {}
     learnt_dict_incorrect = {}
+    bucket_list_correct = {}
+    bucket_list_incorrect = {}
+    src_wrd_ids_correct = {}
+    src_wrd_ids_incorrect = {}
+
     for i, w in enumerate(src_wrds):
+        bucket = i % 300
         if correct_or_not[i] == 0:
             learnt_dict = learnt_dict_incorrect
+            bucket_list_correct[w] = bucket
+            src_wrd_ids_correct[w] = src_wrd_ids[i]
         else:
             learnt_dict = learnt_dict_correct
+            bucket_list_incorrect[w] = bucket
+            src_wrd_ids_incorrect[w] = src_wrd_ids[i]
         learnt_dict[w] = {}
         pass
         learnt_dict[w]['true'] = true_dict[w]
@@ -312,13 +325,15 @@ def _save_learnt_dictionary(data_dir, true_dict, tgt_id2wrd, knn_indices, correc
     with codecs.open(data_dir + 'incorrect.txt', 'w', encoding='utf-8') as f:
         f.write(json.dumps(learnt_dict_incorrect, ensure_ascii=False, indent=2))
 
-    _write_csv(data_dir, 'correct.csv', learnt_dict_correct)
-    _write_csv(data_dir, 'incorrect.csv', learnt_dict_incorrect)
+    _write_csv(src_wrd_ids_correct, bucket_list_correct, data_dir, 'correct.csv', learnt_dict_correct)
+    _write_csv(src_wrd_ids_incorrect, bucket_list_incorrect, data_dir, 'incorrect.csv', learnt_dict_incorrect)
 
 
-def _write_csv(data_dir, fname, learnt_dict):
+def _write_csv(src_wrd_ids, bucket_list, data_dir, fname, learnt_dict):
     with codecs.open(data_dir + fname, 'w', encoding='utf-8') as f:
-        f.write("Source Word, True Translation, Predicted Translation\n")
+        f.write("Bucket, Word ID, Source Word, True Translation, Predicted Translation\n")
         for src_wrd in learnt_dict.keys():
             true_and_predicted = learnt_dict[src_wrd]
-            f.write(src_wrd + ", " + str(true_and_predicted['true']).replace(",", "|") + ", " + str(true_and_predicted['predicted']).replace(",", "|") + "\n")
+            f.write(str(bucket_list[src_wrd]) + ", " + str(src_wrd_ids[src_wrd]) + ", " + src_wrd + ", " + str(true_and_predicted['true']).replace(",", "|") + ", " + str(true_and_predicted[
+                                                                                                                                                                             'predicted']).replace(",",
+                                                                                                                                                                                        "|") + "\n")
