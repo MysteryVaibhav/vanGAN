@@ -17,7 +17,7 @@ else:
 
 
 class Evaluator:
-    def __init__(self, params, src_emb, tgt_emb):
+    def __init__(self, params, src_emb, tgt_emb, use_cuda=False):
         self.data_dir = params.data_dir
         self.ks = params.ks
         self.methods = params.methods
@@ -32,7 +32,6 @@ class Evaluator:
 
         self.tgt_emb = tgt_emb
         self.src_emb = src_emb
-        # self.tgt_emb = tgt_emb / tgt_emb.norm(2, 1)[:, None]
 
         self.valid = []
         self.valid.append(self.prepare_val(self.validation_file))
@@ -44,6 +43,7 @@ class Evaluator:
         self.r_source = None
         self.r_target = None
         self.r_target = None
+        self.use_cuda = use_cuda
         self.cosine_top = params.cosine_top
         self.refine_top = params.refine_top
 
@@ -68,11 +68,6 @@ class Evaluator:
             self.r_target = _common_csls_step(self.csls_k, mapped_src_emb, tgt_emb)
             print("Time taken for making r_target: ", time.time() - start_time)
 
-        # v = self.valid[0]
-        # self.r_source = _common_csls_step(self.csls_k, tgt_emb, mapped_src_emb[v['valid_src_word_ids']])
-        # p = self.get_precision_k(1, tgt_emb, mapped_src_emb, v, method='csls', buckets=None, save=False)
-        # print(p)
-
         adv_mapped_src_emb = mapped_src_emb
 
         if 'procrustes' in self.models:
@@ -84,11 +79,6 @@ class Evaluator:
             refined_mapped_src_emb = self.get_refined_mapping(mapped_src_emb, tgt_emb)
             print("Time taken for refinement: ", time.time() - start_time)
 
-        # v = self.valid[0]
-        # self.r_source = _common_csls_step(self.csls_k, tgt_emb, mapped_src_emb[v['valid_src_word_ids']])
-        # p = self.get_precision_k(1, tgt_emb, mapped_src_emb, v, method='nn', buckets=None, save=False)
-        # print(p)
-
         start_time = time.time()
         all_precisions = {}
 
@@ -96,7 +86,7 @@ class Evaluator:
         save = False
 
         for it, v in enumerate(self.valid):
-            if torch.cuda.is_available():
+            if torch.cuda.is_available() and self.use_cuda:
                 v['valid_src_word_ids'] = v['valid_src_word_ids'].cuda()
             
             if it == 0:
@@ -263,7 +253,7 @@ def _procrustes(pairs, src_emb, tgt_emb):
     X = np.transpose(src_emb[pairs[:, 0]].cpu().numpy())
     Y = np.transpose(tgt_emb[pairs[:, 1]].cpu().numpy())
     U, Sigma, VT = randomized_svd(np.matmul(Y, np.transpose(X)), n_components=np.shape(X)[0])
-    W = util.to_tensor(np.matmul(U, VT))
+    W = util.to_tensor(np.matmul(U, VT)).type(torch.FloatTensor)
     return W
 
 
@@ -296,7 +286,7 @@ def _calc_prec(n, knn_indices, tgt_word_ids, lo=0):
 
 def _common_csls_step(k, xb, xq):
     distances, _ = _get_knn_indices(k, xb, xq)
-    r = util.to_tensor(np.average(distances, axis=1))
+    r = util.to_tensor(np.average(distances, axis=1)).type(torch.FloatTensor)
     return r
 
 

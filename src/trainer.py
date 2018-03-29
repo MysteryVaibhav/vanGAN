@@ -39,7 +39,7 @@ class Trainer:
         it = tgt_emb
         
         params = _get_eval_params(params)
-        eval = Evaluator(params, src_emb.weight.data, tgt_emb.weight.data)
+        eval = Evaluator(params, src_emb.weight.data, tgt_emb.weight.data, use_cuda=True)
 
         for _ in range(params.num_random_seeds):
 
