@@ -167,6 +167,11 @@ def normalize(v):
     return v / norm
 
 
+def center_embeddings(emb):
+    mean = emb.mean(0, keepdim=True).expand_as(emb)
+    emb.sub_(mean)
+
+
 def to_tensor(numpy_array):
     tensor = torch.from_numpy(numpy_array).float()
     if torch.cuda.is_available():
