@@ -219,6 +219,7 @@ class Evaluator:
         # knn_indices = self.csls(1, tgt_emb, top_src_emb, r_source, self.r_target)
         # pairs = torch.cat([src_wrd_ids[:, None], knn_indices], 1)
         # pairs = _mask(pairs, self.refine_top)
+        print(pairs.size())
         return pairs
 
     def do_procrustes(self, pairs):
