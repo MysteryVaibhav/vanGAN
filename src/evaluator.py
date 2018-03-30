@@ -25,6 +25,7 @@ class Evaluator:
         self.refine = params.refine
         self.csls_k = params.csls_k
         self.mask_procrustes = params.mask_procrustes
+        self.num_refine = params.num_refine
 
         self.validation_file = 'validation.npy'
         self.validation_file_new = 'validation_new.npy'
@@ -76,7 +77,9 @@ class Evaluator:
         if 'with-ref' in self.refine:
             print("Performing refinement...")
             start_time = time.time()
-            refined_mapped_src_emb = self.get_refined_mapping(mapped_src_emb, tgt_emb)
+            for _ in range(self.num_refine):
+                mapped_src_emb = self.get_refined_mapping(mapped_src_emb, tgt_emb)
+            refined_mapped_src_emb = mapped_src_emb
             print("Time taken for refinement: ", time.time() - start_time)
 
         start_time = time.time()
@@ -195,12 +198,27 @@ class Evaluator:
         return self.do_procrustes(pairs)
 
     def learn_refined_dictionary(self, mapped_src_emb, tgt_emb):
-        src_wrd_ids = torch.arange(self.refine_top).type(torch.LongTensor)
-        top_src_emb = mapped_src_emb[src_wrd_ids]
-        r_source = _common_csls_step(self.csls_k, tgt_emb, top_src_emb)
-        knn_indices = self.csls(1, tgt_emb, top_src_emb, r_source, self.r_target)
-        pairs = torch.cat([src_wrd_ids[:, None], knn_indices], 1)
+        bs = 128
+        pairs = None
+        for i in range(0, self.refine_top, bs):
+            lo = i
+            hi = min(self.refine_top, i + bs)
+            src_wrd_ids = torch.arange(lo, hi).type(torch.LongTensor)
+            top_src_emb = mapped_src_emb[src_wrd_ids]
+            r_source = _common_csls_step(self.csls_k, tgt_emb, top_src_emb)
+            knn_indices = self.csls(1, tgt_emb, top_src_emb, r_source, self.r_target)
+            temp = torch.cat([src_wrd_ids[:, None], knn_indices], 1)
+            if pairs is None:
+                pairs = temp
+            else:
+                pairs = torch.cat([pairs, temp], 0)
         pairs = _mask(pairs, self.refine_top)
+        # src_wrd_ids = torch.arange(self.refine_top).type(torch.LongTensor)
+        # top_src_emb = mapped_src_emb[src_wrd_ids]
+        # r_source = _common_csls_step(self.csls_k, tgt_emb, top_src_emb)
+        # knn_indices = self.csls(1, tgt_emb, top_src_emb, r_source, self.r_target)
+        # pairs = torch.cat([src_wrd_ids[:, None], knn_indices], 1)
+        # pairs = _mask(pairs, self.refine_top)
         return pairs
 
     def do_procrustes(self, pairs):

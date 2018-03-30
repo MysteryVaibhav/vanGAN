@@ -60,15 +60,21 @@ def parse_arguments():
     parser.add_argument("--refine_top", dest="refine_top", type=int, default=refine_top)
     parser.add_argument("--cosine_top", dest="cosine_top", type=int, default=cosine_top)
     parser.add_argument("--mask_procrustes", dest="mask_procrustes", type=int, default=0)
+    parser.add_argument("--num_refine", dest="num_refine", type=int, default=1)
     return parser.parse_args()
 
 
 def _get_eval_params(params):
     params = copy.deepcopy(params)
-    params.ks = [1, 5, 10]
+    # params.ks = [1, 5, 10]
+    # params.methods = ['nn', 'csls']
+    # params.models = ['procrustes', 'adv']
+    # params.refine = ['without-ref', 'with-ref']
+
+    params.ks = [1]
     params.methods = ['nn', 'csls']
     params.models = ['procrustes', 'adv']
-    params.refine = ['without-ref', 'with-ref']
+    params.refine = ['with-ref']
     return params
 
 
