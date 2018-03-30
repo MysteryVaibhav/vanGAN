@@ -1,0 +1,139 @@
+Reading embedding numpy files...
+Done.
+Converting arrays to embedding layers...
+Done.
+Calculating r_target...
+Time taken for making r_target:  13.535006284713745
+Performing refinement...
+Time taken for refinement:  64.471932888031
+key: validation, model: procrustes, refine: without-ref, method: nn, k: 1, prec: 40.600000
+key: validation, model: procrustes, refine: without-ref, method: nn, k: 5, prec: 57.670000
+key: validation, model: procrustes, refine: without-ref, method: nn, k: 10, prec: 62.800000
+key: validation, model: procrustes, refine: without-ref, method: csls, k: 1, prec: 40.470000
+key: validation, model: procrustes, refine: without-ref, method: csls, k: 5, prec: 57.130000
+key: validation, model: procrustes, refine: without-ref, method: csls, k: 10, prec: 62.870000
+key: validation, model: adv, refine: without-ref, method: nn, k: 1, prec: 17.530000
+key: validation, model: adv, refine: without-ref, method: nn, k: 5, prec: 28.670000
+key: validation, model: adv, refine: without-ref, method: nn, k: 10, prec: 33.000000
+key: validation, model: adv, refine: without-ref, method: csls, k: 1, prec: 22.270000
+key: validation, model: adv, refine: without-ref, method: csls, k: 5, prec: 35.530000
+key: validation, model: adv, refine: without-ref, method: csls, k: 10, prec: 40.470000
+key: validation, model: adv, refine: with-ref, method: nn, k: 1, prec: 33.000000
+key: validation, model: adv, refine: with-ref, method: nn, k: 5, prec: 47.730000
+key: validation, model: adv, refine: with-ref, method: nn, k: 10, prec: 53.670000
+key: validation, model: adv, refine: with-ref, method: csls, k: 1, prec: 32.870000
+key: validation, model: adv, refine: with-ref, method: csls, k: 5, prec: 48.600000
+key: validation, model: adv, refine: with-ref, method: csls, k: 10, prec: 54.670000
+key: validation-new, model: procrustes, refine: without-ref, method: nn, k: 1, prec: 19.670000
+key: validation-new, model: procrustes, refine: without-ref, method: nn, k: 5, prec: 32.330000
+key: validation-new, model: procrustes, refine: without-ref, method: nn, k: 10, prec: 37.070000
+key: validation-new, model: procrustes, refine: without-ref, method: csls, k: 1, prec: 19.530000
+key: validation-new, model: procrustes, refine: without-ref, method: csls, k: 5, prec: 32.200000
+key: validation-new, model: procrustes, refine: without-ref, method: csls, k: 10, prec: 36.070000
+key: validation-new, model: adv, refine: without-ref, method: nn, k: 1, prec: 8.200000
+key: validation-new, model: adv, refine: without-ref, method: nn, k: 5, prec: 13.930000
+key: validation-new, model: adv, refine: without-ref, method: nn, k: 10, prec: 17.330000
+key: validation-new, model: adv, refine: without-ref, method: csls, k: 1, prec: 10.870000
+key: validation-new, model: adv, refine: without-ref, method: csls, k: 5, prec: 18.600000
+key: validation-new, model: adv, refine: without-ref, method: csls, k: 10, prec: 22.070000
+key: validation-new, model: adv, refine: with-ref, method: nn, k: 1, prec: 15.130000
+key: validation-new, model: adv, refine: with-ref, method: nn, k: 5, prec: 25.400000
+key: validation-new, model: adv, refine: with-ref, method: nn, k: 10, prec: 29.330000
+key: validation-new, model: adv, refine: with-ref, method: csls, k: 1
+precision:  [15.4, 35.67, 24.0, 8.67, 5.0, 3.67]
+key: validation-new, model: adv, refine: with-ref, method: csls, k: 5, prec: 25.470000
+key: validation-new, model: adv, refine: with-ref, method: csls, k: 10, prec: 29.200000
+Time taken to run main loop:  118.53107810020447
+{
+  "validation": {
+    "procrustes": {
+      "without-ref": {
+        "nn": {
+          "1": 40.6,
+          "5": 57.67,
+          "10": 62.8
+        },
+        "csls": {
+          "1": 40.47,
+          "5": 57.13,
+          "10": 62.87
+        }
+      }
+    },
+    "adv": {
+      "without-ref": {
+        "nn": {
+          "1": 17.53,
+          "5": 28.67,
+          "10": 33.0
+        },
+        "csls": {
+          "1": 22.27,
+          "5": 35.53,
+          "10": 40.47
+        }
+      },
+      "with-ref": {
+        "nn": {
+          "1": 33.0,
+          "5": 47.73,
+          "10": 53.67
+        },
+        "csls": {
+          "1": 32.87,
+          "5": 48.6,
+          "10": 54.67
+        }
+      }
+    }
+  },
+  "validation-new": {
+    "procrustes": {
+      "without-ref": {
+        "nn": {
+          "1": 19.67,
+          "5": 32.33,
+          "10": 37.07
+        },
+        "csls": {
+          "1": 19.53,
+          "5": 32.2,
+          "10": 36.07
+        }
+      }
+    },
+    "adv": {
+      "without-ref": {
+        "nn": {
+          "1": 8.2,
+          "5": 13.93,
+          "10": 17.33
+        },
+        "csls": {
+          "1": 10.87,
+          "5": 18.6,
+          "10": 22.07
+        }
+      },
+      "with-ref": {
+        "nn": {
+          "1": 15.13,
+          "5": 25.4,
+          "10": 29.33
+        },
+        "csls": {
+          "1": [
+            15.4,
+            35.67,
+            24.0,
+            8.67,
+            5.0,
+            3.67
+          ],
+          "5": 25.47,
+          "10": 29.2
+        }
+      }
+    }
+  }
+}
