@@ -3,15 +3,15 @@ Done.
 Converting arrays to embedding layers...
 Done.
 Calculating r_target...
-Time taken for making r_target:  13.535006284713745
+Time taken for making r_target:  15.063106536865234
 Performing refinement...
-Time taken for refinement:  64.471932888031
+Time taken for refinement:  78.83667063713074
 key: validation, model: procrustes, refine: without-ref, method: nn, k: 1, prec: 40.600000
 key: validation, model: procrustes, refine: without-ref, method: nn, k: 5, prec: 57.670000
 key: validation, model: procrustes, refine: without-ref, method: nn, k: 10, prec: 62.800000
-key: validation, model: procrustes, refine: without-ref, method: csls, k: 1, prec: 40.470000
-key: validation, model: procrustes, refine: without-ref, method: csls, k: 5, prec: 57.130000
-key: validation, model: procrustes, refine: without-ref, method: csls, k: 10, prec: 62.870000
+key: validation, model: procrustes, refine: without-ref, method: csls, k: 1, prec: 42.730000
+key: validation, model: procrustes, refine: without-ref, method: csls, k: 5, prec: 60.130000
+key: validation, model: procrustes, refine: without-ref, method: csls, k: 10, prec: 64.470000
 key: validation, model: adv, refine: without-ref, method: nn, k: 1, prec: 17.530000
 key: validation, model: adv, refine: without-ref, method: nn, k: 5, prec: 28.670000
 key: validation, model: adv, refine: without-ref, method: nn, k: 10, prec: 33.000000
@@ -21,15 +21,15 @@ key: validation, model: adv, refine: without-ref, method: csls, k: 10, prec: 40.
 key: validation, model: adv, refine: with-ref, method: nn, k: 1, prec: 33.000000
 key: validation, model: adv, refine: with-ref, method: nn, k: 5, prec: 47.730000
 key: validation, model: adv, refine: with-ref, method: nn, k: 10, prec: 53.670000
-key: validation, model: adv, refine: with-ref, method: csls, k: 1, prec: 32.870000
-key: validation, model: adv, refine: with-ref, method: csls, k: 5, prec: 48.600000
-key: validation, model: adv, refine: with-ref, method: csls, k: 10, prec: 54.670000
+key: validation, model: adv, refine: with-ref, method: csls, k: 1, prec: 35.200000
+key: validation, model: adv, refine: with-ref, method: csls, k: 5, prec: 50.130000
+key: validation, model: adv, refine: with-ref, method: csls, k: 10, prec: 55.400000
 key: validation-new, model: procrustes, refine: without-ref, method: nn, k: 1, prec: 19.670000
 key: validation-new, model: procrustes, refine: without-ref, method: nn, k: 5, prec: 32.330000
 key: validation-new, model: procrustes, refine: without-ref, method: nn, k: 10, prec: 37.070000
-key: validation-new, model: procrustes, refine: without-ref, method: csls, k: 1, prec: 19.530000
-key: validation-new, model: procrustes, refine: without-ref, method: csls, k: 5, prec: 32.200000
-key: validation-new, model: procrustes, refine: without-ref, method: csls, k: 10, prec: 36.070000
+key: validation-new, model: procrustes, refine: without-ref, method: csls, k: 1, prec: 22.270000
+key: validation-new, model: procrustes, refine: without-ref, method: csls, k: 5, prec: 34.800000
+key: validation-new, model: procrustes, refine: without-ref, method: csls, k: 10, prec: 40.130000
 key: validation-new, model: adv, refine: without-ref, method: nn, k: 1, prec: 8.200000
 key: validation-new, model: adv, refine: without-ref, method: nn, k: 5, prec: 13.930000
 key: validation-new, model: adv, refine: without-ref, method: nn, k: 10, prec: 17.330000
@@ -40,10 +40,10 @@ key: validation-new, model: adv, refine: with-ref, method: nn, k: 1, prec: 15.13
 key: validation-new, model: adv, refine: with-ref, method: nn, k: 5, prec: 25.400000
 key: validation-new, model: adv, refine: with-ref, method: nn, k: 10, prec: 29.330000
 key: validation-new, model: adv, refine: with-ref, method: csls, k: 1
-precision:  [15.4, 35.67, 24.0, 8.67, 5.0, 3.67]
-key: validation-new, model: adv, refine: with-ref, method: csls, k: 5, prec: 25.470000
-key: validation-new, model: adv, refine: with-ref, method: csls, k: 10, prec: 29.200000
-Time taken to run main loop:  118.53107810020447
+precision:  [17.0, 35.0, 29.67, 10.67, 6.0, 3.67]
+key: validation-new, model: adv, refine: with-ref, method: csls, k: 5, prec: 27.470000
+key: validation-new, model: adv, refine: with-ref, method: csls, k: 10, prec: 30.670000
+Time taken to run main loop:  37.14485716819763
 {
   "validation": {
     "procrustes": {
@@ -54,9 +54,9 @@ Time taken to run main loop:  118.53107810020447
           "10": 62.8
         },
         "csls": {
-          "1": 40.47,
-          "5": 57.13,
-          "10": 62.87
+          "1": 42.73,
+          "5": 60.13,
+          "10": 64.47
         }
       }
     },
@@ -80,9 +80,9 @@ Time taken to run main loop:  118.53107810020447
           "10": 53.67
         },
         "csls": {
-          "1": 32.87,
-          "5": 48.6,
-          "10": 54.67
+          "1": 35.2,
+          "5": 50.13,
+          "10": 55.4
         }
       }
     }
@@ -96,9 +96,9 @@ Time taken to run main loop:  118.53107810020447
           "10": 37.07
         },
         "csls": {
-          "1": 19.53,
-          "5": 32.2,
-          "10": 36.07
+          "1": 22.27,
+          "5": 34.8,
+          "10": 40.13
         }
       }
     },
@@ -123,15 +123,15 @@ Time taken to run main loop:  118.53107810020447
         },
         "csls": {
           "1": [
-            15.4,
-            35.67,
-            24.0,
-            8.67,
-            5.0,
+            17.0,
+            35.0,
+            29.67,
+            10.67,
+            6.0,
             3.67
           ],
-          "5": 25.47,
-          "10": 29.2
+          "5": 27.47,
+          "10": 30.67
         }
       }
     }
