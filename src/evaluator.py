@@ -6,6 +6,7 @@ import platform
 import time
 from sklearn.utils.extmath import randomized_svd
 import codecs
+import scipy
 
 op_sys = platform.system()
 if op_sys == 'Darwin':
@@ -79,6 +80,8 @@ class Evaluator:
             start_time = time.time()
             for _ in range(self.num_refine):
                 mapped_src_emb = self.get_refined_mapping(mapped_src_emb, tgt_emb)
+                mapped_src_emb = mapped_src_emb / mapped_src_emb.norm(2, 1)[:, None]
+                self.r_target = _common_csls_step(self.csls_k, mapped_src_emb, tgt_emb)
             refined_mapped_src_emb = mapped_src_emb
             print("Time taken for refinement: ", time.time() - start_time)
 
@@ -100,11 +103,12 @@ class Evaluator:
 
             for mod in self.models:
                 if mod == 'procrustes':
-                    mapped_src_emb = procrustes_mapped_src_emb
+                    mapped_src_emb = procrustes_mapped_src_emb.clone()
                 elif mod == 'adv':
-                    mapped_src_emb = adv_mapped_src_emb
+                    mapped_src_emb = adv_mapped_src_emb.clone()
                 else:
                     raise 'Model not implemented: %s' % mod
+                    
                 all_precisions[key][mod] = {}
 
                 for r in self.refine:
@@ -112,10 +116,15 @@ class Evaluator:
                         if mod == 'procrustes':
                             continue
                         else:
-                            mapped_src_emb = refined_mapped_src_emb
-
+                            mapped_src_emb = refined_mapped_src_emb.clone()
+                    
+                    mapped_src_emb = mapped_src_emb / mapped_src_emb.norm(2, 1)[:, None]
+                    
                     if 'csls' in self.methods:
                         self.r_source = _common_csls_step(self.csls_k, tgt_emb, mapped_src_emb[v['valid_src_word_ids']])
+                        start_time = time.time()
+                        self.r_target = _common_csls_step(self.csls_k, mapped_src_emb, tgt_emb)
+                        
                     all_precisions[key][mod][r] = {}
 
                     for m in self.methods:
@@ -198,7 +207,7 @@ class Evaluator:
         return self.do_procrustes(pairs)
 
     def learn_refined_dictionary(self, mapped_src_emb, tgt_emb):
-        bs = 128
+        bs = 15000
         pairs = None
         for i in range(0, self.refine_top, bs):
             lo = i
@@ -219,7 +228,6 @@ class Evaluator:
         # knn_indices = self.csls(1, tgt_emb, top_src_emb, r_source, self.r_target)
         # pairs = torch.cat([src_wrd_ids[:, None], knn_indices], 1)
         # pairs = _mask(pairs, self.refine_top)
-        print(pairs.size())
         return pairs
 
     def do_procrustes(self, pairs):
@@ -271,7 +279,8 @@ def _get_knn_indices(k, xb, xq):
 def _procrustes(pairs, src_emb, tgt_emb):
     X = np.transpose(src_emb[pairs[:, 0]].cpu().numpy())
     Y = np.transpose(tgt_emb[pairs[:, 1]].cpu().numpy())
-    U, Sigma, VT = randomized_svd(np.matmul(Y, np.transpose(X)), n_components=np.shape(X)[0])
+#     U, Sigma, VT = randomized_svd(np.matmul(Y, np.transpose(X)), n_components=np.shape(X)[0])
+    U, Sigma, VT = scipy.linalg.svd(np.matmul(Y, np.transpose(X)), full_matrices=True)
     W = util.to_tensor(np.matmul(U, VT)).type(torch.FloatTensor)
     return W
 

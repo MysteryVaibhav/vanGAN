@@ -66,15 +66,10 @@ def parse_arguments():
 
 def _get_eval_params(params):
     params = copy.deepcopy(params)
-    # params.ks = [1, 5, 10]
-    # params.methods = ['nn', 'csls']
-    # params.models = ['procrustes', 'adv']
-    # params.refine = ['without-ref', 'with-ref']
-
-    params.ks = [1]
+    params.ks = [1, 5, 10]
     params.methods = ['nn', 'csls']
     params.models = ['procrustes', 'adv']
-    params.refine = ['with-ref']
+    params.refine = ['without-ref', 'with-ref']
     return params
 
 
