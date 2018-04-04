@@ -8,6 +8,9 @@ if not os.path.exists(DATA_DIR):
 MODEL_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'models/')
 if not os.path.exists(MODEL_DIR):
     os.makedirs(MODEL_DIR)
+PLOT_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'plots/')
+if not os.path.exists(PLOT_DIR):
+    os.makedirs(PLOT_DIR)
 
 EN_WORD_TO_VEC = 'wiki.en.vec'
 IT_WORD_TO_VEC = 'wiki.es.vec'
@@ -39,7 +42,7 @@ num_epochs = 7
 d_steps = 5  # 'k' steps in the original GAN paper. Can put the discriminator on higher training freq than generator
 g_steps = 1
 smoothing = 0.1   # As per what is mentioned in the paper
-beta = 0.001      # Set this to 0.0001 for en-zh
+beta = 0.001
 clip_value = 0
 
 # Training
@@ -52,7 +55,6 @@ add_noise = 0
 noise_mean = 1.0
 noise_var = 0.2
 num_random_seeds = 15    # Number of different seeds to try
-center_embeddings = 0    # Set this to 1 for en-zh
 
 # Validation
 K = 5
