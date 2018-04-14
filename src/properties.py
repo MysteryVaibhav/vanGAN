@@ -55,6 +55,8 @@ add_noise = 0
 noise_mean = 1.0
 noise_var = 0.2
 num_random_seeds = 15    # Number of different seeds to try
+center_embeddings = 0
+k_neighbours_inp = 4
 
 # Validation
 K = 5
