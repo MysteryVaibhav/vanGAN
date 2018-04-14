@@ -18,6 +18,15 @@ import copy
 from evaluator import Evaluator
 
 
+class DiscHyperparameters:
+    def __init__(self, params):
+        self.dropout_inp = params.dropout_inp
+        self.dropout_hidden = params.dropout_hidden
+        self.leaky_slope = params.leaky_slope
+        self.add_noise = params.add_noise
+        self.noise_mean = params.noise_mean
+        self.noise_var = params.noise_var
+
 class Trainer:
     def __init__(self, params):
         self.params = params
@@ -28,6 +37,9 @@ class Trainer:
             torch.manual_seed(seed)
             if torch.cuda.is_available():
                 torch.cuda.manual_seed(seed)
+
+    def get_disc_hyperparams(self):
+        return DiscHyperparameters(self.params)
 
     def train(self, src_emb, tgt_emb):
         params = self.params
@@ -45,7 +57,8 @@ class Trainer:
 
             # Create models
             g = Generator(input_size=params.g_input_size, output_size=params.g_output_size)
-            d = Discriminator(input_size=params.d_input_size, hidden_size=params.d_hidden_size, output_size=params.d_output_size)
+            d = Discriminator(input_size=params.d_input_size, hidden_size=params.d_hidden_size,
+                              output_size=params.d_output_size, hyperparams=self.get_disc_hyperparams())
 
             seed = random.randint(0, 1000)
             # init_xavier(g)

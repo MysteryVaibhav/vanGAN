@@ -44,9 +44,13 @@ def parse_arguments():
     parser.add_argument("--print_every", dest="print_every", type=int, default=print_every)
     parser.add_argument("--lr_decay", dest="lr_decay", type=float, default=lr_decay)
     parser.add_argument("--lr_min", dest="lr_min", type=float, default=lr_min)
-    parser.add_argument("--add_noise", dest="add_noise", type=int, default=add_noise)
     parser.add_argument("--center_embeddings", dest="center_embeddings", type=int, default=center_embeddings)
 
+    parser.add_argument("--dropout_inp", dest="dropout_inp", type=int, default=dropout_inp)
+    parser.add_argument("--dropout_hidden", dest="dropout_hidden", type=int, default=dropout_hidden)
+    parser.add_argument("--leaky_slope", dest="leaky_slope", type=int, default=leaky_slope)
+
+    parser.add_argument("--add_noise", dest="add_noise", type=int, default=add_noise)
     parser.add_argument("--noise_mean", dest="noise_mean", type=float, default=noise_mean)
     parser.add_argument("--noise_var", dest="noise_var", type=float, default=noise_var)
 

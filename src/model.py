@@ -1,7 +1,8 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from properties import *
+# from properties import *
+
 
 class Generator(nn.Module):
     def __init__(self, input_size, output_size):
@@ -15,23 +16,30 @@ class Generator(nn.Module):
 
 
 class Discriminator(nn.Module):
-    def __init__(self, input_size, hidden_size, output_size):
+    def __init__(self, input_size, hidden_size, output_size, hyperparams):
+        dropout_inp = hyperparams.dropout_inp
+        dropout_hidden = hyperparams.dropout_hidden
+        leaky_slope = hyperparams.leaky_slope
+        self.add_noise = hyperparams.add_noise
+        self.noise_mean = hyperparams.noise_mean
+        self.noise_var = hyperparams.noise_var
+
         super(Discriminator, self).__init__()
         self.map1 = nn.Linear(input_size, hidden_size)
-        self.drop1 = nn.Dropout(0.1)
-        self.activation1 = nn.LeakyReLU(0.2)
+        self.drop1 = nn.Dropout(dropout_inp)
+        self.activation1 = nn.LeakyReLU(leaky_slope)
         self.map2 = nn.Linear(hidden_size, hidden_size)
-        self.drop2 = nn.Dropout(0)    # As per the fb implementation
-        self.activation2 = nn.LeakyReLU(0.2)
+        self.drop2 = nn.Dropout(dropout_hidden)    # As per the fb implementation
+        self.activation2 = nn.LeakyReLU(leaky_slope)
         self.map3 = nn.Linear(hidden_size, output_size)
-        
+
     def gaussian(self, ins, mean, stddev):
         noise = torch.autograd.Variable(ins.data.new(ins.size()).normal_(mean, stddev))
         return ins * noise
 
     def forward(self, x):
-        if add_noise:
-            x = self.gaussian(x, mean=noise_mean, stddev=noise_var)  # muliplicative guassian noise
+        if self.add_noise:
+            x = self.gaussian(x, mean=self.noise_mean, stddev=self.noise_var)  # muliplicative guassian noise
         x = self.activation1(self.map1(self.drop1(x))) # Input dropout
         x = self.drop2(self.activation2(self.map2(x)))
         return F.sigmoid(self.map3(x)).view(-1)

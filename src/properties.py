@@ -51,12 +51,16 @@ most_frequent_sampling_size = 75000   # Paper mentions this
 print_every = 1
 lr_decay = 1
 lr_min = 1e-6
-add_noise = 0
-noise_mean = 1.0
-noise_var = 0.2
 num_random_seeds = 15    # Number of different seeds to try
 center_embeddings = 0
 k_neighbours_inp = 4
+
+dropout_inp = 0.1
+dropout_hidden = 0
+leaky_slope = 0.2
+add_noise = 0
+noise_mean = 1.0
+noise_var = 0.2
 
 # Validation
 K = 5
