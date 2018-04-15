@@ -59,3 +59,15 @@ class Discriminator(nn.Module):
         x = self.activation1(self.map1(self.drop1(x))) # Input dropout
         x = self.drop2(self.activation2(self.map2(x)))
         return F.sigmoid(self.map3(x)).view(-1)
+
+
+class Attention(nn.Module):
+    def __init__(self, atype='dot'):
+        super(Attention, self).__init__()
+        self.atype = atype
+        if self.atype == 'dot':
+            pass
+
+    def forward(self, H, h):
+        if self.atype == 'dot':
+            return H.transpose(0, 1).mm(h[:, None])
