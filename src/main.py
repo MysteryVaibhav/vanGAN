@@ -70,6 +70,9 @@ def parse_arguments():
     parser.add_argument("--num_refine", dest="num_refine", type=int, default=1)
     parser.add_argument("--context", dest="context", type=int, default=context)
     parser.add_argument("--atype", dest="atype", type=str, default=atype)
+
+    parser.add_argument("--src_lang", dest="src_lang", type=str, default='en')
+    parser.add_argument("--tgt_lang", dest="tgt_lang", type=str, default='zh')
     return parser.parse_args()
 
 
