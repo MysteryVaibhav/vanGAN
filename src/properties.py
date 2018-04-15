@@ -78,3 +78,4 @@ csls_k = 10
 dict_max_top = 10000
 
 context = 0
+atype = 'dot'

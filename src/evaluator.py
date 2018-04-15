@@ -67,7 +67,7 @@ class Evaluator:
         if 'csls' in self.methods:
             print("Calculating r_target...")
             start_time = time.time()
-            self.r_target = _common_csls_step(self.csls_k, mapped_src_emb, tgt_emb)
+            self.r_target = common_csls_step(self.csls_k, mapped_src_emb, tgt_emb)
             print("Time taken for making r_target: ", time.time() - start_time)
 
         adv_mapped_src_emb = mapped_src_emb
@@ -81,7 +81,7 @@ class Evaluator:
             for _ in range(self.num_refine):
                 mapped_src_emb = self.get_refined_mapping(mapped_src_emb, tgt_emb)
                 mapped_src_emb = mapped_src_emb / mapped_src_emb.norm(2, 1)[:, None]
-                self.r_target = _common_csls_step(self.csls_k, mapped_src_emb, tgt_emb)
+                self.r_target = common_csls_step(self.csls_k, mapped_src_emb, tgt_emb)
             refined_mapped_src_emb = mapped_src_emb
             print("Time taken for refinement: ", time.time() - start_time)
 
@@ -121,9 +121,9 @@ class Evaluator:
                     mapped_src_emb = mapped_src_emb / mapped_src_emb.norm(2, 1)[:, None]
                     
                     if 'csls' in self.methods:
-                        self.r_source = _common_csls_step(self.csls_k, tgt_emb, mapped_src_emb[v['valid_src_word_ids']])
+                        self.r_source = common_csls_step(self.csls_k, tgt_emb, mapped_src_emb[v['valid_src_word_ids']])
                         start_time = time.time()
-                        self.r_target = _common_csls_step(self.csls_k, mapped_src_emb, tgt_emb)
+                        self.r_target = common_csls_step(self.csls_k, mapped_src_emb, tgt_emb)
                         
                     all_precisions[key][mod][r] = {}
 
@@ -154,15 +154,15 @@ class Evaluator:
         start_time = time.time()
         xq = mapped_src_emb[src_wrd_ids]
         xb = self.tgt_emb / self.tgt_emb.norm(2, 1)[:, None]
-        r_source = _common_csls_step(1, xb, xq)
+        r_source = common_csls_step(1, xb, xq)
 
         if self.r_target is None:
             print("Calculating r_target...")
             start_time = time.time()
-            self.r_target = _common_csls_step(self.csls_k, mapped_src_emb, xb)
+            self.r_target = common_csls_step(self.csls_k, mapped_src_emb, xb)
             print("Time taken for making r_target: ", time.time() - start_time)
 
-        knn_indices = self.csls(1, xb, xq, r_source, self.r_target)
+        knn_indices = csls(1, xb, xq, r_source, self.r_target)
         knn_indices = knn_indices.view(knn_indices.numel())
         sim = xq.mm(self.tgt_emb[knn_indices].transpose(0, 1))
         print(sim.mean())
@@ -175,10 +175,10 @@ class Evaluator:
         tgt_word_ids = v['valid_tgt_word_ids']
 
         if method == 'nn':
-            _, knn_indices = _get_knn_indices(k, xb, xq)
+            _, knn_indices = get_knn_indices(k, xb, xq)
 
         elif method == 'csls':
-            knn_indices = self.csls(k, xb, xq)
+            knn_indices = csls(k, xb, xq, self.r_source, self.r_target)
 
         else:
             raise "Method not implemented: %s" % method
@@ -188,15 +188,6 @@ class Evaluator:
             _save_learnt_dictionary(self.data_dir, v, self.tgt_id2wrd, knn_indices, c)
 
         return p
-
-    def csls(self, k, xb, xq, r_source=None, r_target=None):
-        if r_source is None and r_target is None:
-            r_source = self.r_source
-            r_target = self.r_target
-        csls = 2 * xq.mm(xb.transpose(0, 1))
-        csls.sub_(r_source[:, None] + r_target[None, :])
-        knn_indices = csls.topk(k, dim=1)[1]
-        return knn_indices
 
     def get_refined_mapping(self, mapped_src_emb, tgt_emb):
         pairs = self.learn_refined_dictionary(mapped_src_emb, tgt_emb)
@@ -214,8 +205,8 @@ class Evaluator:
             hi = min(self.refine_top, i + bs)
             src_wrd_ids = torch.arange(lo, hi).type(torch.LongTensor)
             top_src_emb = mapped_src_emb[src_wrd_ids]
-            r_source = _common_csls_step(self.csls_k, tgt_emb, top_src_emb)
-            knn_indices = self.csls(1, tgt_emb, top_src_emb, r_source, self.r_target)
+            r_source = common_csls_step(self.csls_k, tgt_emb, top_src_emb)
+            knn_indices = csls(1, tgt_emb, top_src_emb, r_source, self.r_target)
             temp = torch.cat([src_wrd_ids[:, None], knn_indices], 1)
             if pairs is None:
                 pairs = temp
@@ -224,8 +215,8 @@ class Evaluator:
         pairs = _mask(pairs, self.refine_top)
         # src_wrd_ids = torch.arange(self.refine_top).type(torch.LongTensor)
         # top_src_emb = mapped_src_emb[src_wrd_ids]
-        # r_source = _common_csls_step(self.csls_k, tgt_emb, top_src_emb)
-        # knn_indices = self.csls(1, tgt_emb, top_src_emb, r_source, self.r_target)
+        # r_source = common_csls_step(self.csls_k, tgt_emb, top_src_emb)
+        # knn_indices = csls(1, tgt_emb, top_src_emb, r_source, self.r_target)
         # pairs = torch.cat([src_wrd_ids[:, None], knn_indices], 1)
         # pairs = _mask(pairs, self.refine_top)
         return pairs
@@ -259,7 +250,7 @@ def _mask(pairs, thresh):
     return selected_pairs
 
 
-def _get_knn_indices(k, xb, xq):
+def get_knn_indices(k, xb, xq):
     xb = xb.cpu().numpy()
     xq = xq.cpu().numpy()
     d = xq.shape[1]
@@ -312,10 +303,17 @@ def _calc_prec(n, knn_indices, tgt_word_ids, lo=0):
     return (p/n)*100, c
 
 
-def _common_csls_step(k, xb, xq):
-    distances, _ = _get_knn_indices(k, xb, xq)
+def common_csls_step(k, xb, xq):
+    distances, _ = get_knn_indices(k, xb, xq)
     r = util.to_tensor(np.average(distances, axis=1)).type(torch.FloatTensor)
     return r
+
+
+def csls(k, xb, xq, r_source, r_target):
+    csls = 2 * xq.mm(xb.transpose(0, 1))
+    csls.sub_(r_source[:, None] + r_target[None, :])
+    knn_indices = csls.topk(k, dim=1)[1]
+    return knn_indices
 
 
 def _save_learnt_dictionary(data_dir, v, tgt_id2wrd, knn_indices, correct_or_not):

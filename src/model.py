@@ -21,9 +21,6 @@ class Generator(nn.Module):
             self.activation1 = nn.LeakyReLU(leaky_slope)
             self.map2 = nn.Linear(hidden_size, output_size, bias=False)
 
-        for param in self.parameters():
-            print(type(param), param.size())
-
     def forward(self, x):
         if self.context == 0:
             return self.map1(x)
@@ -70,4 +67,4 @@ class Attention(nn.Module):
 
     def forward(self, H, h):
         if self.atype == 'dot':
-            return H.transpose(0, 1).mm(h[:, None])
+            return torch.matmul(H, h[:, :, None]).squeeze()

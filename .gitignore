@@ -11,3 +11,6 @@ src/numpy-vs-pytorch.ipynb
 command_0
 jupyter-notebooks/
 log_src_tgt.txt
+r_target_zh.pkl
+r_target.pkl
+full_knn_list.pkl

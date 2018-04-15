@@ -1,7 +1,7 @@
 import util
 from properties import *
 from model import *
-from trainer import Trainer
+from trainer import Trainer, get_hyperparams
 from evaluator import Evaluator
 import argparse
 import copy
@@ -69,6 +69,7 @@ def parse_arguments():
     parser.add_argument("--mask_procrustes", dest="mask_procrustes", type=int, default=0)
     parser.add_argument("--num_refine", dest="num_refine", type=int, default=1)
     parser.add_argument("--context", dest="context", type=int, default=context)
+    parser.add_argument("--atype", dest="atype", type=str, default=atype)
     return parser.parse_args()
 
 
@@ -113,7 +114,8 @@ def main():
             evaluator = Evaluator(params, src_emb.weight.data, tgt_emb.weight.data)
 
             model_file_path = os.path.join(params.model_dir, params.model_file_name)
-            g = Generator(input_size=g_input_size, output_size=g_output_size)
+            g = Generator(input_size=params.g_input_size, hidden_size=params.g_hidden_size,
+                          output_size=params.g_output_size, hyperparams=get_hyperparams(params, disc=False))
             g.load_state_dict(torch.load(model_file_path, map_location='cpu'))
 
 #             if torch.cuda.is_available():
