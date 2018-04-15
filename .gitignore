@@ -9,3 +9,5 @@ g_model_*
 src/.ipynb_checkpoints/
 src/numpy-vs-pytorch.ipynb
 command_0
+jupyter-notebooks/
+log_src_tgt.txt

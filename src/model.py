@@ -5,14 +5,30 @@ import torch.nn.functional as F
 
 
 class Generator(nn.Module):
-    def __init__(self, input_size, output_size):
+    def __init__(self, input_size, output_size, hidden_size, hyperparams=None):
         super(Generator, self).__init__()
-        self.map1 = nn.Linear(input_size, output_size, bias=False)
-        #nn.init.orthogonal(self.map1.weight)
-        nn.init.eye(self.map1.weight)   # As per the fb implementation initialization
+
+        self.context = hyperparams.context
+        assert self.context in [0, 1]
+
+        if self.context == 0:
+            self.map1 = nn.Linear(input_size, output_size, bias=False)
+            #nn.init.orthogonal(self.map1.weight)
+            nn.init.eye(self.map1.weight)   # As per the fb implementation initialization
+        else:
+            leaky_slope = hyperparams.leaky_slope
+            self.map1 = nn.Linear(input_size, hidden_size)
+            self.activation1 = nn.LeakyReLU(leaky_slope)
+            self.map2 = nn.Linear(hidden_size, output_size, bias=False)
+
+        for param in self.parameters():
+            print(type(param), param.size())
 
     def forward(self, x):
-        return self.map1(x)
+        if self.context == 0:
+            return self.map1(x)
+        else:
+            return self.map2(self.activation1(self.map1(x)))
 
 
 class Discriminator(nn.Module):

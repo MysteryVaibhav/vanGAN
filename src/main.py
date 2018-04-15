@@ -25,6 +25,7 @@ def parse_arguments():
     parser.add_argument("--g_output_size", dest="g_output_size", type=int, default=g_output_size)
     parser.add_argument("--d_input_size", dest="d_input_size", type=int, default=d_input_size)
     parser.add_argument("--d_hidden_size", dest="d_hidden_size", type=int, default=d_hidden_size)
+    parser.add_argument("--g_hidden_size", dest="g_hidden_size", type=int, default=g_hidden_size)
     parser.add_argument("--d_output_size", dest="d_output_size", type=int, default=d_output_size)
     parser.add_argument("--mini_batch_size", dest="mini_batch_size", type=int, default=mini_batch_size)
 
@@ -67,6 +68,7 @@ def parse_arguments():
     parser.add_argument("--cosine_top", dest="cosine_top", type=int, default=cosine_top)
     parser.add_argument("--mask_procrustes", dest="mask_procrustes", type=int, default=0)
     parser.add_argument("--num_refine", dest="num_refine", type=int, default=1)
+    parser.add_argument("--context", dest="context", type=int, default=context)
     return parser.parse_args()
 
 

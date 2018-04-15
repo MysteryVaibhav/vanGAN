@@ -33,6 +33,7 @@ g_input_size = 300     # Random noise dimension coming into generator, per outpu
 g_output_size = 300    # size of generated output vector
 d_input_size = 300   # cardinality of distributions
 d_hidden_size = 2048   # Discriminator complexity
+g_hidden_size = 300
 d_output_size = 1    # Single dimension for 'real' vs. 'fake'
 mini_batch_size = 32
 
@@ -75,3 +76,5 @@ mode = 1
 
 csls_k = 10
 dict_max_top = 10000
+
+context = 0
