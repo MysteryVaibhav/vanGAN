@@ -28,9 +28,14 @@ class Evaluator:
         self.mask_procrustes = params.mask_procrustes
         self.num_refine = params.num_refine
 
-        self.validation_file = 'validation.npy'
-        self.validation_file_new = 'validation_new.npy'
-        self.gold_file = 'gold.npy'
+        src = params.src_lang
+        tgt = params.tgt_lang
+
+        self.suffix_str = src + '_' + tgt
+
+        self.validation_file = 'validation_' + self.suffix_str + '.npy'
+        self.validation_file_new = 'validation_new_' + self.suffix_str + '.npy'
+        self.gold_file = 'gold_' + self.suffix_str + '.npy'
 
         self.tgt_emb = tgt_emb
         self.src_emb = src_emb
@@ -39,7 +44,7 @@ class Evaluator:
         self.valid.append(self.prepare_val(self.validation_file))
         self.valid.append(self.prepare_val(self.validation_file_new))
 
-        self.tgt_wrd2id = util.load_npy_one(self.data_dir, "tgt_ids.npy")
+        self.tgt_wrd2id = util.load_npy_one(self.data_dir, "tgt_ids_" + self.suffix_str + ".npy")
         self.tgt_id2wrd = dict(zip(self.tgt_wrd2id.values(), self.tgt_wrd2id.keys()))
 
         self.r_source = None
@@ -52,7 +57,7 @@ class Evaluator:
     def prepare_val(self, validation_file):
         valid = {}
         pass
-        valid_dict_ids = util.map_dict2ids(self.data_dir, validation_file)
+        valid_dict_ids = util.map_dict2ids(self.data_dir, validation_file, self.suffix_str)
         valid['valid_src_word_ids'] = torch.from_numpy(np.array(list(valid_dict_ids.keys())))
         valid['valid_tgt_word_ids'] = list(valid_dict_ids.values())
         valid['valid_dict'] = util.load_npy_one(self.data_dir, validation_file)
@@ -227,7 +232,7 @@ class Evaluator:
         return mapped_src_emb
 
     def process_gold_file(self):
-        gold_dict_ids = util.map_dict2ids(self.data_dir, self.gold_file)
+        gold_dict_ids = util.map_dict2ids(self.data_dir, self.gold_file, self.suffix_str)
         gold_src_ids = []
         gold_tgt_ids = []
         for src, tgt_list in gold_dict_ids.items():

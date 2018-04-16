@@ -97,7 +97,13 @@ def main():
         use_cuda = False
         if params.mode == 1:
             use_cuda = True
-        src_emb_array, tgt_emb_array = util.load_npy_two(params.data_dir, 'src.npy', 'tgt.npy')
+
+        src = params.src_lang
+        tgt = params.tgt_lang
+
+        suffix_str = src + '_' + tgt
+
+        src_emb_array, tgt_emb_array = util.load_npy_two(params.data_dir, 'src_' + suffix_str + '.npy', 'tgt_' + suffix_str + '.npy')
         print("Done.")
         print("Converting arrays to embedding layers...")
         src_emb = util.convert_to_embeddings(src_emb_array, use_cuda)

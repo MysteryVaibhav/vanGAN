@@ -41,6 +41,7 @@ class Trainer:
     def __init__(self, params):
         self.params = params
         self.knn_emb = None
+        self.suffix_str = None
         
     def initialize_exp(self, seed):
         if seed >= 0:
@@ -60,15 +61,17 @@ class Trainer:
 
         src = params.src_lang
         tgt = params.tgt_lang
+
+        self.suffix_str = src + '_' + tgt
         
         params = _get_eval_params(params)
         evaluator = eval.Evaluator(params, src_emb.weight.data, tgt_emb.weight.data, use_cuda=True)
 
         if params.context == 1:
             try:
-                knn_list = pickle.load(open('full_knn_list_' + src + '_' + tgt + '.pkl', 'rb'))
+                knn_list = pickle.load(open('full_knn_list_' + self.suffix_str + '.pkl', 'rb'))
             except FileNotFoundError:
-                knn_list = get_knn_embedding(params, src_emb)
+                knn_list = get_knn_embedding(params, src_emb, self.suffix_str)
             self.knn_emb = convert_to_embeddings(knn_list, use_cuda=True)
 
         for _ in range(params.num_random_seeds):
@@ -278,10 +281,7 @@ def get_hyperparams(params, disc=True):
 
 
 # Finds top-k neighbours and puts them in a matrix
-def get_knn_list(src_ids, emb, params, method='knn'):
-    src = params.src_lang
-    tgt = params.tgt_lang
-
+def get_knn_list(src_ids, emb, params, suffix_str, method='knn'):
     xq = emb(src_ids).data
     xb = emb.weight.data
     xb = xb/xb.norm(2, 1)[:, None]
@@ -295,14 +295,14 @@ def get_knn_list(src_ids, emb, params, method='knn'):
     else:
         r_source = eval.common_csls_step(params.csls_k, xb, xq)
         try:
-            r_target = pickle.load(open('r_target_' + src + '_' + tgt + '.pkl', 'rb'))
+            r_target = pickle.load(open('r_target_' + suffix_str + '.pkl', 'rb'))
         except FileNotFoundError:
             print("Calculating r_target...")
             start_time = time.time()
             xb = emb.weight.data
             xb = xb / xb.norm(2, 1)[:, None]
             r_target = eval.common_csls_step(params.csls_k, xb, xb)
-            with open('r_target_' + src + '_' + tgt + '.pkl', 'wb') as fp:
+            with open('r_target_' + suffix_str + '.pkl', 'wb') as fp:
                 pickle.dump(r_target, fp, pickle.HIGHEST_PROTOCOL)
             print("Time taken for making r_target: %.2f" % (time.time() - start_time))
         knn = eval.csls(k, xb, xq, r_source, r_target)
@@ -316,10 +316,8 @@ def modify_knn(knn, src_ids):
     return knn[:, :-1]
 
 
-def get_knn_embedding(params, src_emb):
+def get_knn_embedding(params, src_emb, suffix_str):
     start_time_begin = time.time()
-    src = params.src_lang
-    tgt = params.tgt_lang
     max_top = params.most_frequent_sampling_size
     # Construct knn list embedding layer
     if torch.cuda.is_available():
@@ -334,7 +332,7 @@ def get_knn_embedding(params, src_emb):
         src_ids = torch.arange(lo, hi).type(torch.LongTensor)
         if torch.cuda.is_available():
             src_ids = src_ids.cuda()
-        temp = get_knn_list(src_ids, src_emb, params, method='csls')
+        temp = get_knn_list(src_ids, src_emb, params, suffix_str, method='csls')
 
         if knn_list is None:
             knn_list = temp
@@ -342,7 +340,7 @@ def get_knn_embedding(params, src_emb):
             knn_list = torch.cat([knn_list, temp], 0)
         print("Time taken for iteration %d: %.2f" % (i, time.time() - start_time))
     knn_list = knn_list.cpu().numpy()
-    with open('full_knn_list_' + src + '_' + tgt + '.pkl', 'wb') as fp:
+    with open('full_knn_list_' + suffix_str + '.pkl', 'wb') as fp:
         pickle.dump(knn_list, fp, pickle.HIGHEST_PROTOCOL)
     print("Total time taken for constructing knn list: %.2f" % (time.time() - start_time_begin))
     return knn_list

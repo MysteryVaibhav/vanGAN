@@ -10,6 +10,7 @@ random.seed(seed)
 class Utils:
 
     def __init__(self, params):
+        self.params = params
         self.data_dir = params.data_dir
         self.src_file = params.src_file
         self.tgt_file = params.tgt_file
@@ -20,23 +21,27 @@ class Utils:
         self.top_frequent_words = params.top_frequent_words
 
     def run(self):
+        src = self.params.src_lang
+        tgt = self.params.tgt_lang
+
+        suffix_str = src + '_' + tgt
         print("Reading source word embeddings...")
-        word2vec_src = self.save_word_vectors(self.src_file, save=True, save_file_as='src')
+        word2vec_src = self.save_word_vectors(self.src_file, save=True, save_file_as='src_' + suffix_str)
         print("Done.")
         print(word2vec_src.shape)
         print("Reading target word embeddings...")
-        word2vec_tgt = self.save_word_vectors(self.tgt_file, save=True, save_file_as='tgt')
+        word2vec_tgt = self.save_word_vectors(self.tgt_file, save=True, save_file_as='tgt_' + suffix_str)
         print("Done.")
         print(word2vec_tgt.shape)
         print("Reading validation file...")
-        self.read_dictionary(self.validation_file, save=True)
+        self.read_dictionary(self.validation_file, save_file_as="validation_" + suffix_str, save=True)
         print("Reading gold file...")
-        self.read_dictionary(self.gold_file, save_file_as='gold', save=True)
+        self.read_dictionary(self.gold_file, save_file_as='gold_' + suffix_str, save=True)
         print("Constructing source word-id map...")
-        self.save_word_ids_dicts(self.src_file, save=True, save_file_as='src_ids')
+        self.save_word_ids_dicts(self.src_file, save=True, save_file_as='src_ids_' + suffix_str)
         print("Done.")
         print("Constructing target word-id map...")
-        self.save_word_ids_dicts(self.tgt_file, save=True, save_file_as='tgt_ids')
+        self.save_word_ids_dicts(self.tgt_file, save=True, save_file_as='tgt_ids_' + suffix_str)
 
         # print("Reading full file...")
         # full_dict = self.read_dictionary(self.full_file, save=False)
@@ -44,7 +49,7 @@ class Utils:
         # word2id = dict(zip(np.arange(len(all_src_words)), all_src_words))
         # print("Constructing new validation set...")
         # self.construct_new_val_set(full_dict, word2id, self.new_validation_file)
-        self.read_dictionary(self.new_validation_file, save_file_as="validation_new", save=True)
+        self.read_dictionary(self.new_validation_file, save_file_as="validation_new_" + suffix_str, save=True)
         print("Everything Done.")
 
     def save_word_vectors(self, file, save=False, save_file_as='src'):
@@ -140,9 +145,9 @@ def load_npy_two(data_dir, src_fname, tgt_fname, dict=False):
 
 
 # Validation set in a dictionary form {src_wrd: [tgt_wrd_1, tgt_wrd_2, ...]}
-def map_dict2ids(data_dir, dict_fname='validation.npy'):
+def map_dict2ids(data_dir, dict_fname, suffix_str):
     dict_wrd = load_npy_one(data_dir, dict_fname)
-    src_ids, tgt_ids = load_npy_two(data_dir, 'src_ids.npy', 'tgt_ids.npy', dict=True)
+    src_ids, tgt_ids = load_npy_two(data_dir, 'src_ids_' + suffix_str + '.npy', 'tgt_ids_' + suffix_str +'.npy', dict=True)
     dict_ids = {}
     for src_wrd, tgt_list in dict_wrd.items():
         dict_ids[src_ids[src_wrd]] = [tgt_ids[tgt_wrd] for tgt_wrd in tgt_list]
