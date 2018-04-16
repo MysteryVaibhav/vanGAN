@@ -181,7 +181,7 @@ class Trainer:
                             indices = torch.arange(params.top_frequent_words).type(torch.LongTensor)
                             if torch.cuda.is_available():
                                 indices = indices.cuda()
-                            all_precisions = evaluator.get_all_precisions(g(construct_input(self.knn_emb, indices, en, a)).data)
+                            all_precisions = evaluator.get_all_precisions(g(construct_input(self.knn_emb, indices, en, a, use_cuda=True)).data)
                         else:
                             all_precisions = evaluator.get_all_precisions(g(src_emb.weight).data)
                         #print(json.dumps(all_precisions))
@@ -231,7 +231,7 @@ class Trainer:
             # p = F.softmax(a(H, en_batch), dim=1)
             # c = torch.matmul(H.transpose(1, 2), p.unsqueeze(2)).squeeze()
             # fake = g(torch.cat([en_batch, c], 1))
-            fake = g(construct_input(self.knn_emb, random_en_indices, en, a))
+            fake = g(construct_input(self.knn_emb, random_en_indices, en, a, use_cuda=True))
         else:
             fake = g(en_batch)
         if detach:
@@ -260,12 +260,14 @@ class Trainer:
         return input, output
 
 
-def construct_input(knn_emb, indices, src_emb, attn):
+def construct_input(knn_emb, indices, src_emb, attn, use_cuda=False):
+    if torch.cuda.is_available() and use_cuda:
+        indices = indices.cuda()
     knn = knn_emb(indices).type(torch.LongTensor)
-    if torch.cuda.is_available():
+    if torch.cuda.is_available() and use_cuda:
         knn = knn.cuda()
     H = src_emb(knn)
-    h = src_emb(to_variable(indices))
+    h = src_emb(to_variable(indices, use_cuda=use_cuda))
     p = F.softmax(attn(H, h), dim=1)
     c = torch.matmul(H.transpose(1, 2), p.unsqueeze(2)).squeeze()
     return torch.cat([h, c], 1)
@@ -326,6 +328,9 @@ def get_knn_list(src_ids, emb, params, suffix_str, method='knn'):
             with open('r_target_' + suffix_str + '.pkl', 'wb') as fp:
                 pickle.dump(r_target, fp, pickle.HIGHEST_PROTOCOL)
             print("Time taken for making r_target: %.2f" % (time.time() - start_time))
+        if torch.cuda.is_available:
+            r_source = r_source.cuda()
+            r_target = r_target.cuda()
         knn = eval.csls(k, xb, xq, r_source, r_target)
     return modify_knn(knn, src_ids)
 

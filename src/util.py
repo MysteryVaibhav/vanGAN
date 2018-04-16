@@ -184,7 +184,7 @@ def to_tensor(numpy_array):
     return tensor
 
 
-def to_variable(tensor, volatile=False):
-    if torch.cuda.is_available():
+def to_variable(tensor, volatile=False, use_cuda=True):
+    if torch.cuda.is_available() and use_cuda:
         tensor = tensor.cuda()
     return torch.autograd.Variable(tensor, volatile)
