@@ -190,8 +190,7 @@ class Trainer:
                         log_file.write(str(all_precisions) + "\n")
                         # Saving generator weights
 
-                        torch.save(g.state_dict(), 'generator_weights_' + self.suffix_str + '_seed_{}_mf_{}_lr_{}_p@1_{:.3f}.t7'.format(seed, params.most_frequent_sampling_size,
-                                                                                                                                       params.g_learning_rate, p_1))
+                        torch.save(g.state_dict(), 'generator_weights_' + self.suffix_str + '_seed_{}_mf_{}_lr_{}_p@1_{:.3f}.t7'.format(seed, epoch, params.g_learning_rate, p_1))
 
                 # Save the plot for discriminator accuracy and generator loss
                 fig = plt.figure()
