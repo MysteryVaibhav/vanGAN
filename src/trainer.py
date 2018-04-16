@@ -189,7 +189,9 @@ class Trainer:
                         log_file.write("{},{:.5f},{:.5f},{:.5f}\n".format(epoch + 1, np.asscalar(np.mean(d_losses)), hit / total, np.asscalar(np.mean(g_losses))))
                         log_file.write(str(all_precisions) + "\n")
                         # Saving generator weights
-                        torch.save(g.state_dict(), 'generator_weights_src_tgt_seed_{}_mf_{}_lr_{}_p@1_{:.3f}.t7'.format(seed, params.most_frequent_sampling_size, params.g_learning_rate, p_1))
+
+                        torch.save(g.state_dict(), 'generator_weights_' + self.suffix_str + 'seed_{}_mf_{}_lr_{}_p@1_{:.3f}.t7'.format(seed, params.most_frequent_sampling_size,
+                                                                                                                                       params.g_learning_rate, p_1))
 
                 # Save the plot for discriminator accuracy and generator loss
                 fig = plt.figure()
