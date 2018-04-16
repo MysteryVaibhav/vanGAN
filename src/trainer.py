@@ -149,7 +149,10 @@ class Trainer:
                             g_optimizer.step()  # Only optimizes G's parameters
 
                             # Orthogonalize
-                            self.orthogonalize(g.map1.weight.data)
+                            if params.context == 1:
+                                self.orthogonalize(g.map2.weight.data)
+                            else:
+                                self.orthogonalize(g.map1.weight.data)
 
                             sys.stdout.write("[%d/%d] ::                                     Generator Loss: %f \r" % (
                                 mini_batch, params.iters_in_epoch // params.mini_batch_size, np.asscalar(np.mean(g_losses))))
@@ -174,7 +177,13 @@ class Trainer:
                     if (epoch + 1) % params.print_every == 0:
                         # No need for discriminator weights
                         # torch.save(d.state_dict(), 'discriminator_weights_en_es_{}.t7'.format(epoch))
-                        all_precisions = evaluator.get_all_precisions(g(src_emb.weight).data)
+                        if params.context == 1:
+                            indices = torch.arange(params.top_frequent_words).type(torch.LongTensor)
+                            if torch.cuda.is_available():
+                                indices = indices.cuda()
+                            all_precisions = evaluator.get_all_precisions(g(construct_input(self.knn_emb, indices, en, a)).data)
+                        else:
+                            all_precisions = evaluator.get_all_precisions(g(src_emb.weight).data)
                         #print(json.dumps(all_precisions))
                         p_1 = all_precisions['validation']['adv']['without-ref']['nn'][1]
                         log_file.write("{},{:.5f},{:.5f},{:.5f}\n".format(epoch + 1, np.asscalar(np.mean(d_losses)), hit / total, np.asscalar(np.mean(g_losses))))
@@ -215,13 +224,14 @@ class Trainer:
 
         if params.context == 1:
             # knn = get_knn_list(random_en_indices, en, params, method='csls')
-            knn = self.knn_emb(random_en_indices).type(torch.LongTensor)
-            if torch.cuda.is_available():
-                knn = knn.cuda()
-            H = en(knn)
-            p = F.softmax(a(H, en_batch), dim=1)
-            c = torch.matmul(H.transpose(1, 2), p.unsqueeze(2)).squeeze()
-            fake = g(torch.cat([en_batch, c], 1))
+            # knn = self.knn_emb(random_en_indices).type(torch.LongTensor)
+            # if torch.cuda.is_available():
+            #     knn = knn.cuda()
+            # H = en(knn)
+            # p = F.softmax(a(H, en_batch), dim=1)
+            # c = torch.matmul(H.transpose(1, 2), p.unsqueeze(2)).squeeze()
+            # fake = g(torch.cat([en_batch, c], 1))
+            fake = g(construct_input(self.knn_emb, random_en_indices, en, a))
         else:
             fake = g(en_batch)
         if detach:
@@ -248,6 +258,17 @@ class Trainer:
         output[:params.mini_batch_size] = 1 - params.smoothing   # As per fb implementation
         output[params.mini_batch_size:] = params.smoothing
         return input, output
+
+
+def construct_input(knn_emb, indices, src_emb, attn):
+    knn = knn_emb(indices).type(torch.LongTensor)
+    if torch.cuda.is_available():
+        knn = knn.cuda()
+    H = src_emb(knn)
+    h = src_emb(to_variable(indices))
+    p = F.softmax(attn(H, h), dim=1)
+    c = torch.matmul(H.transpose(1, 2), p.unsqueeze(2)).squeeze()
+    return torch.cat([h, c], 1)
 
 
 def _init_xavier(m):
@@ -318,7 +339,8 @@ def modify_knn(knn, src_ids):
 
 def get_knn_embedding(params, src_emb, suffix_str):
     start_time_begin = time.time()
-    max_top = params.most_frequent_sampling_size
+    # max_top = params.most_frequent_sampling_size
+    max_top = params.top_frequent_words
     # Construct knn list embedding layer
     if torch.cuda.is_available():
         bs = 4096

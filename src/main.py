@@ -1,12 +1,13 @@
 import util
 from properties import *
 from model import *
-from trainer import Trainer, get_hyperparams
+from trainer import Trainer, get_hyperparams, construct_input
 from evaluator import Evaluator
 import argparse
 import copy
 import os
 import numpy as np
+import pickle
 
 os.environ['KMP_DUPLICATE_LIB_OK'] = 'TRUE'
 
@@ -127,10 +128,24 @@ def main():
                           output_size=params.g_output_size, hyperparams=get_hyperparams(params, disc=False))
             g.load_state_dict(torch.load(model_file_path, map_location='cpu'))
 
+            try:
+                knn_list = pickle.load(open('full_knn_list_' + suffix_str + '.pkl', 'rb'))
+            except FileNotFoundError:
+                print("k-nn file not found!")
+            knn_emb = util.convert_to_embeddings(knn_list, use_cuda=False)
+
+            attn = Attention(atype=params.atype)
+            indices = torch.arange(params.top_frequent_words).type(torch.LongTensor)
+
+            if params.context == 1:
+                mapped_src_emb = g(construct_input(knn_emb, indices, src_emb, attn)).data
+            else:
+                mapped_src_emb = g(src_emb.weight).data
+
 #             if torch.cuda.is_available():
 #                 g = g.cuda()
 
-            mapped_src_emb = g(src_emb.weight).data
+
 #             print(mapped_src_emb)
             evaluator.get_all_precisions(mapped_src_emb)
             # print("Unsupervised criterion: ", evaluator.calc_unsupervised_criterion(mapped_src_emb))
