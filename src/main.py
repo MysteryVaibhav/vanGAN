@@ -71,6 +71,7 @@ def parse_arguments():
     parser.add_argument("--num_refine", dest="num_refine", type=int, default=1)
     parser.add_argument("--context", dest="context", type=int, default=context)
     parser.add_argument("--atype", dest="atype", type=str, default=atype)
+    parser.add_argument("--use_rank_predictor", dest="use_rank_predictor", type=int, default=use_rank_predictor)
 
     parser.add_argument("--src_lang", dest="src_lang", type=str, default='en')
     parser.add_argument("--tgt_lang", dest="tgt_lang", type=str, default='zh')
@@ -128,16 +129,14 @@ def main():
                           output_size=params.g_output_size, hyperparams=get_hyperparams(params, disc=False))
             g.load_state_dict(torch.load(model_file_path, map_location='cpu'))
 
-            try:
-                knn_list = pickle.load(open('full_knn_list_' + suffix_str + '.pkl', 'rb'))
-            except FileNotFoundError:
-                print("k-nn file not found!")
-            knn_emb = util.convert_to_embeddings(knn_list, use_cuda=False)
-
-            attn = Attention(atype=params.atype)
-            indices = torch.arange(params.top_frequent_words).type(torch.LongTensor)
-
             if params.context == 1:
+                try:
+                    knn_list = pickle.load(open('full_knn_list_' + suffix_str + '.pkl', 'rb'))
+                except FileNotFoundError:
+                    print("k-nn file not found!")
+                knn_emb = util.convert_to_embeddings(knn_list, use_cuda=False)
+                attn = Attention(atype=params.atype)
+                indices = torch.arange(params.top_frequent_words).type(torch.LongTensor)
                 mapped_src_emb = g(construct_input(knn_emb, indices, src_emb, attn)).data
             else:
                 mapped_src_emb = g(src_emb.weight).data
