@@ -68,3 +68,17 @@ class Attention(nn.Module):
     def forward(self, H, h):
         if self.atype == 'dot':
             return torch.matmul(H, h[:, :, None]).squeeze()
+        
+
+class RankPredictor(nn.Module):
+    def __init__(self, input_size, output_size, hidden_size, leaky_slope):
+        super(RankPredictor, self).__init__()
+        self.map1 = nn.Linear(input_size, hidden_size)
+        self.activation1 = nn.LeakyReLU(leaky_slope)
+        self.map2 = nn.Linear(hidden_size, output_size)
+
+    def forward(self, h):
+        h = self.map1(h)
+        h = self.activation1(h)
+        h = self.map2(h)
+        return h
