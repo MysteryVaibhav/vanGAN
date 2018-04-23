@@ -39,11 +39,11 @@ mini_batch_size = 32
 
 d_learning_rate = 0.2
 g_learning_rate = 0.2
-num_epochs = 7
+num_epochs = 15
 d_steps = 5  # 'k' steps in the original GAN paper. Can put the discriminator on higher training freq than generator
 g_steps = 1
 smoothing = 0.1   # As per what is mentioned in the paper
-beta = 0.001
+beta = 0.0001
 clip_value = 0
 
 # Training
@@ -79,3 +79,4 @@ dict_max_top = 10000
 
 context = 0
 atype = 'dot'
+use_rank_predictor = 0
