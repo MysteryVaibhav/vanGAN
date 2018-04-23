@@ -5,7 +5,7 @@ import torch.utils.data
 # from properties import *
 import torch.optim as optim
 from util import *
-from model import Generator, Discriminator, Attention
+from model import Generator, Discriminator, Attention, RankPredictor
 from timeit import default_timer as timer
 import matplotlib
 matplotlib.use('Agg')
@@ -82,6 +82,10 @@ class Trainer:
             d = Discriminator(input_size=params.d_input_size, hidden_size=params.d_hidden_size,
                               output_size=params.d_output_size, hyperparams=get_hyperparams(params, disc=True))
             a = Attention(atype=params.atype)
+            r_p = RankPredictor(input_size=params.g_output_size,
+                                output_size=int(np.floor(np.log(params.most_frequent_sampling_size)) + 1),
+                                hidden_size=params.d_hidden_size // 4, leaky_slope=params.leaky_slope)
+            
             seed = random.randint(0, 1000)
             # init_xavier(g)
             # init_xavier(d)
@@ -89,14 +93,18 @@ class Trainer:
             
             # Define loss function and optimizers
             loss_fn = torch.nn.BCELoss()
+            r_p_loss_fn = torch.nn.CrossEntropyLoss()
             d_optimizer = optim.SGD(d.parameters(), lr=params.d_learning_rate)
             g_optimizer = optim.SGD(g.parameters(), lr=params.g_learning_rate)
+            r_p_optimizer = optim.SGD(g.parameters(), lr=params.g_learning_rate)
 
             if torch.cuda.is_available():
                 # Move the network and the optimizer to the GPU
                 g = g.cuda()
                 d = d.cuda()
+                r_p = r_p.cuda()
                 loss_fn = loss_fn.cuda()
+                r_p_loss_fn = r_p_loss_fn.cuda()
 
             # true_dict = get_true_dict(params.data_dir)
             d_acc_epochs = []
@@ -110,6 +118,7 @@ class Trainer:
                 for epoch in range(params.num_epochs):
                     d_losses = []
                     g_losses = []
+                    rank_losses = []
                     hit = 0
                     total = 0
                     start_time = timer()
@@ -141,21 +150,43 @@ class Trainer:
                             # 2. Train G on D's response (but DO NOT train D on these labels)
                             g_optimizer.zero_grad()
                             d.eval()
-                            input, output = self.get_batch_data_fast(en, it, g, a, detach=False)
+                            
+                            if params.use_rank_predictor > 0:
+                                input, output, true_ranks = self.get_batch_data_fast(en, it, g, a, detach=False, use_rank_predictor=True)
+                            else:
+                                input, output = self.get_batch_data_fast(en, it, g, a, detach=False)
+                            
                             pred = d(input)
                             g_loss = loss_fn(pred, 1 - output)
-                            g_loss.backward()
-                            g_losses.append(g_loss.data.cpu().numpy())
+                            if params.use_rank_predictor > 0:
+                                g_loss.backward(retain_graph=True)
+                            else:
+                                g_loss.backward()
                             g_optimizer.step()  # Only optimizes G's parameters
+                            g_losses.append(g_loss.data.cpu().numpy())
+                            
+                            if params.use_rank_predictor > 0:
+                                # First half of input are the transformed embeddings
+                                fake_input = input[: len(input)//2]
+                                rank_predictions = r_p(fake_input)
+                                rank_loss = r_p_loss_fn(rank_predictions, true_ranks)
+                                rank_loss.backward()
+                                r_p_optimizer.step()
+                                rank_losses.append(rank_loss.data.cpu().numpy())
 
                             # Orthogonalize
                             if params.context == 1:
                                 self.orthogonalize(g.map2.weight.data)
                             else:
                                 self.orthogonalize(g.map1.weight.data)
-
-                            sys.stdout.write("[%d/%d] ::                                     Generator Loss: %f \r" % (
-                                mini_batch, params.iters_in_epoch // params.mini_batch_size, np.asscalar(np.mean(g_losses))))
+                            
+                            if params.use_rank_predictor > 0:
+                                sys.stdout.write("[%d/%d] ::                                     Generator Loss: %f , Rank Loss: %f \r" % (
+                                    mini_batch, params.iters_in_epoch // params.mini_batch_size, np.asscalar(np.mean(g_losses)),
+                                    np.asscalar(np.mean(rank_losses))))
+                            else:
+                                sys.stdout.write("[%d/%d] ::                                     Generator Loss: %f \r" % (
+                                    mini_batch, params.iters_in_epoch // params.mini_batch_size, np.asscalar(np.mean(g_losses))))
                             sys.stdout.flush()
 
                     d_acc_epochs.append(hit / total)
@@ -216,7 +247,7 @@ class Trainer:
         params = self.params
         W.copy_((1 + params.beta) * W - params.beta * W.mm(W.transpose(0, 1).mm(W)))
 
-    def get_batch_data_fast(self, en, it, g, a, detach=False):
+    def get_batch_data_fast(self, en, it, g, a, detach=False, use_rank_predictor=False):
         params = self.params
         random_en_indices = torch.LongTensor(params.mini_batch_size).random_(params.most_frequent_sampling_size)
         random_it_indices = torch.LongTensor(params.mini_batch_size).random_(params.most_frequent_sampling_size)
@@ -242,6 +273,9 @@ class Trainer:
         output = to_variable(torch.FloatTensor(2 * params.mini_batch_size).zero_())
         output[:params.mini_batch_size] = 1 - params.smoothing
         output[params.mini_batch_size:] = params.smoothing
+        if use_rank_predictor and not detach:
+            # + 1 to avoid log(0)
+            return input, output, to_variable(torch.floor(torch.log(random_en_indices.float() + 1)).long())
         return input, output
 
     def get_batch_data(self, en, it, g, detach=False):
