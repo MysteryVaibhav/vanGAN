@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+from tqdm import tqdm
 import argparse
 import fastText
 import logging
@@ -28,17 +29,23 @@ def main(args):
     # Read subword IDs
     if verbose:
         logger.info('Read subwords from ' + path_subwords)
+    subword_seqs = []
     vocab = set()
     with open(path_subwords) as f:
-        for i, line in enumerate(f, start=1):
-            for wid in line.strip().split(' ')[1:]:
-                vocab.add(int(wid))
+        for i, line in tqdm(enumerate(f, start=1)):
+            subword_seqs.append([int(v) for v in line.strip().split(' ')[1:]])
+            for v in subword_seqs[-1]:
+                vocab.add(v)
             if i == args.topn:
                 break
-    idx2id = sorted(list(vocab))  # index (starting from zero) to word ID
+    # idx = 0 is reserved for UNK
+    idx2id = [-1] + sorted(list(vocab))  # index (starting from 1) to word ID
     id2idx = {i: idx for idx, i in enumerate(idx2id)}  # reverse
+    # Re-index
+    for i, seq in enumerate(subword_seqs):
+        subword_seqs[i] = [id2idx[v] for v in seq]
     if verbose:
-        logger.info('# of subwords: {}'.format(len(idx2id)))
+        logger.info('# of subwords: {}'.format(len(idx2id) - 1))
 
     if verbose:
         logger.info('Load a model from ' + path_model)
@@ -46,12 +53,15 @@ def main(args):
     if verbose:
         logger.info('Done.')
 
-    W = np.r_[[model.get_input_vector(i) for i in idx2id]]
+    vecs = [model.get_input_vector(i) for i in idx2id]
+    W = np.r_[[np.zeros(vecs[0].shape[0])] + vecs]
+    if verbose:
+        logger.info('W: {}'.format(W.shape))
 
     path_output = args.path_data + '.subwords.npz'
     if verbose:
         logger.info('Write to ' + path_output)
-    np.savez(path_output, W=W, idx2id=idx2id, id2idx=id2idx)
+    np.savez(path_output, W=W, seqs=subword_seqs, idx2id=idx2id)
 
     return 0
 
