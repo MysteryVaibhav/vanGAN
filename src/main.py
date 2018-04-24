@@ -29,6 +29,7 @@ def parse_arguments():
     parser.add_argument("--g_hidden_size", dest="g_hidden_size", type=int, default=g_hidden_size)
     parser.add_argument("--d_output_size", dest="d_output_size", type=int, default=d_output_size)
     parser.add_argument("--mini_batch_size", dest="mini_batch_size", type=int, default=mini_batch_size)
+    parser.add_argument("--seed", dest="seed", type=int, default=-1)
 
     parser.add_argument("--d_learning_rate", dest="d_learning_rate", type=float, default=d_learning_rate)
     parser.add_argument("--g_learning_rate", dest="g_learning_rate", type=float, default=g_learning_rate)

@@ -80,8 +80,11 @@ class Trainer:
             r_p = RankPredictor(input_size=params.g_output_size,
                                 output_size=int(np.floor(np.log(params.most_frequent_sampling_size)) + 1),
                                 hidden_size=params.d_hidden_size // 4, leaky_slope=params.leaky_slope)
-            
-            seed = random.randint(0, 1000)
+
+            if params.seed > 0:
+                seed = params.seed
+            else:
+                seed = random.randint(0, 1000)
             # init_xavier(g)
             # init_xavier(d)
             self.initialize_exp(seed)
