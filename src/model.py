@@ -9,20 +9,20 @@ class Generator(nn.Module):
         super(Generator, self).__init__()
 
         self.context = hyperparams.context
-        assert self.context in [0, 1]
+        assert self.context in [0, 1, 2]
 
-        if self.context == 0:
+        if self.context == 0 or self.context == 2:
             self.map1 = nn.Linear(input_size, output_size, bias=False)
             #nn.init.orthogonal(self.map1.weight)
             nn.init.eye(self.map1.weight)   # As per the fb implementation initialization
-        else:
+        elif self.context == 1:
             leaky_slope = hyperparams.leaky_slope
             self.map1 = nn.Linear(input_size, hidden_size)
             self.activation1 = nn.LeakyReLU(leaky_slope)
             self.map2 = nn.Linear(hidden_size, output_size, bias=False)
 
     def forward(self, x):
-        if self.context == 0:
+        if self.context == 0 or self.context == 2:
             return self.map1(x)
         else:
             return self.map2(self.activation1(self.map1(x)))

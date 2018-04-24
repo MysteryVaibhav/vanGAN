@@ -159,8 +159,7 @@ def convert_to_embeddings(emb_array, use_cuda=False):
     emb_tensor = to_tensor(emb_array)
     v, d = emb_tensor.size()
     emb = torch.nn.Embedding(v, d)
-    if torch.cuda.is_available() and use_cuda:
-        emb = emb.cuda()
+    emb = to_cuda(emb, use_cuda)
     emb.weight.data.copy_(emb_tensor)
     emb.weight.requires_grad = False
     return emb
@@ -186,6 +185,11 @@ def to_tensor(numpy_array):
 
 
 def to_variable(tensor, volatile=False, use_cuda=True):
+    tensor = to_cuda(tensor, use_cuda)
+    return torch.autograd.Variable(tensor, volatile)
+
+
+def to_cuda(tensor, use_cuda):
     if torch.cuda.is_available() and use_cuda:
         tensor = tensor.cuda()
-    return torch.autograd.Variable(tensor, volatile)
+    return tensor

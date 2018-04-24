@@ -41,7 +41,6 @@ class Trainer:
     def __init__(self, params):
         self.params = params
         self.knn_emb = None
-        self.suffix_str = None
         
     def initialize_exp(self, seed):
         if seed >= 0:
@@ -52,26 +51,22 @@ class Trainer:
 
     def train(self, src_emb, tgt_emb):
         params = self.params
+        suffix_str = params.suffix_str
         # Load data
         if not os.path.exists(params.data_dir):
             raise "Data path doesn't exists: %s" % params.data_dir
 
         en = src_emb
         it = tgt_emb
-
-        src = params.src_lang
-        tgt = params.tgt_lang
-
-        self.suffix_str = src + '_' + tgt
         
         params = _get_eval_params(params)
         evaluator = eval.Evaluator(params, src_emb.weight.data, tgt_emb.weight.data, use_cuda=True)
 
-        if params.context == 1:
+        if params.context > 0:
             try:
-                knn_list = pickle.load(open('full_knn_list_' + self.suffix_str + '.pkl', 'rb'))
+                knn_list = pickle.load(open('full_knn_list_' + suffix_str + '.pkl', 'rb'))
             except FileNotFoundError:
-                knn_list = get_knn_embedding(params, src_emb, self.suffix_str)
+                knn_list = get_knn_embedding(params, src_emb, suffix_str, context=params.context, method='csls', use_cuda=True)
             self.knn_emb = convert_to_embeddings(knn_list, use_cuda=True)
 
         for _ in range(params.num_random_seeds):
@@ -208,11 +203,10 @@ class Trainer:
                     if (epoch + 1) % params.print_every == 0:
                         # No need for discriminator weights
                         # torch.save(d.state_dict(), 'discriminator_weights_en_es_{}.t7'.format(epoch))
-                        if params.context == 1:
+                        if params.context > 0:
                             indices = torch.arange(params.top_frequent_words).type(torch.LongTensor)
-                            if torch.cuda.is_available():
-                                indices = indices.cuda()
-                            all_precisions = evaluator.get_all_precisions(g(construct_input(self.knn_emb, indices, en, a, use_cuda=True)).data)
+                            indices = to_cuda(indices, use_cuda=True)
+                            all_precisions = evaluator.get_all_precisions(g(construct_input(self.knn_emb, indices, en, a, context=params.context, use_cuda=True)).data)
                         else:
                             all_precisions = evaluator.get_all_precisions(g(src_emb.weight).data)
                         #print(json.dumps(all_precisions))
@@ -221,7 +215,7 @@ class Trainer:
                         log_file.write(str(all_precisions) + "\n")
                         # Saving generator weights
 
-                        torch.save(g.state_dict(), 'generator_weights_' + self.suffix_str + '_seed_{}_mf_{}_lr_{}_p@1_{:.3f}.t7'.format(seed, epoch, params.g_learning_rate, p_1))
+                        torch.save(g.state_dict(), 'generator_weights_' + suffix_str + '_seed_{}_mf_{}_lr_{}_p@1_{:.3f}.t7'.format(seed, epoch, params.g_learning_rate, p_1))
 
                 # Save the plot for discriminator accuracy and generator loss
                 fig = plt.figure()
@@ -254,16 +248,8 @@ class Trainer:
         en_batch = en(to_variable(random_en_indices))
         it_batch = it(to_variable(random_it_indices))
 
-        if params.context == 1:
-            # knn = get_knn_list(random_en_indices, en, params, method='csls')
-            # knn = self.knn_emb(random_en_indices).type(torch.LongTensor)
-            # if torch.cuda.is_available():
-            #     knn = knn.cuda()
-            # H = en(knn)
-            # p = F.softmax(a(H, en_batch), dim=1)
-            # c = torch.matmul(H.transpose(1, 2), p.unsqueeze(2)).squeeze()
-            # fake = g(torch.cat([en_batch, c], 1))
-            fake = g(construct_input(self.knn_emb, random_en_indices, en, a, use_cuda=True))
+        if params.context > 0:
+            fake = g(construct_input(self.knn_emb, random_en_indices, en, a, context=params.context, use_cuda=True))
         else:
             fake = g(en_batch)
         if detach:
@@ -295,17 +281,19 @@ class Trainer:
         return input, output
 
 
-def construct_input(knn_emb, indices, src_emb, attn, use_cuda=False):
-    if torch.cuda.is_available() and use_cuda:
-        indices = indices.cuda()
+def construct_input(knn_emb, indices, src_emb, attn, context=1, use_cuda=False):
+    indices = to_cuda(indices, use_cuda)
     knn = knn_emb(indices).type(torch.LongTensor)
-    if torch.cuda.is_available() and use_cuda:
-        knn = knn.cuda()
+    knn = to_cuda(knn, use_cuda)
     H = src_emb(knn)
     h = src_emb(to_variable(indices, use_cuda=use_cuda))
     p = F.softmax(attn(H, h), dim=1)
     c = torch.matmul(H.transpose(1, 2), p.unsqueeze(2)).squeeze()
-    return torch.cat([h, c], 1)
+
+    if context == 1:
+        return torch.cat([h, c], 1)
+    elif context == 2:
+        return c
 
 
 def _init_xavier(m):
@@ -339,13 +327,14 @@ def get_hyperparams(params, disc=True):
 
 
 # Finds top-k neighbours and puts them in a matrix
-def get_knn_list(src_ids, emb, params, suffix_str, method='knn'):
+def get_knn_list(src_ids, emb, params, suffix_str, context=1, method='knn', use_cuda=False):
     xq = emb(src_ids).data
     xb = emb.weight.data
+    xq = xq / xq.norm(2, 1)[:, None]
     xb = xb/xb.norm(2, 1)[:, None]
-    xq = xq/xq.norm(2, 1)[:, None]
 
-    k = params.K + 1
+    k = params.K
+    k += 1 if context == 1 else 0
 
     if method == 'knn':
         _, knn = eval.get_knn_indices(k, xb, xq)
@@ -357,17 +346,19 @@ def get_knn_list(src_ids, emb, params, suffix_str, method='knn'):
         except FileNotFoundError:
             print("Calculating r_target...")
             start_time = time.time()
-            xb = emb.weight.data
-            xb = xb / xb.norm(2, 1)[:, None]
             r_target = eval.common_csls_step(params.csls_k, xb, xb)
             with open('r_target_' + suffix_str + '.pkl', 'wb') as fp:
                 pickle.dump(r_target, fp, pickle.HIGHEST_PROTOCOL)
             print("Time taken for making r_target: %.2f" % (time.time() - start_time))
-        if torch.cuda.is_available:
-            r_source = r_source.cuda()
-            r_target = r_target.cuda()
+
+        r_source = to_cuda(r_source, use_cuda)
+        r_target = to_cuda(r_target, use_cuda)
         knn = eval.csls(k, xb, xq, r_source, r_target)
-    return modify_knn(knn, src_ids)
+
+    if context == 1:
+        return modify_knn(knn, src_ids)
+    elif context == 2:
+        return knn
 
 
 def modify_knn(knn, src_ids):
@@ -377,9 +368,8 @@ def modify_knn(knn, src_ids):
     return knn[:, :-1]
 
 
-def get_knn_embedding(params, src_emb, suffix_str):
+def get_knn_embedding(params, src_emb, suffix_str, context=1, method='csls', use_cuda=False):
     start_time_begin = time.time()
-    # max_top = params.most_frequent_sampling_size
     max_top = params.top_frequent_words
     # Construct knn list embedding layer
     if torch.cuda.is_available():
@@ -387,20 +377,20 @@ def get_knn_embedding(params, src_emb, suffix_str):
     else:
         bs = 1500
     knn_list = None
+
     for i in range(0, max_top, bs):
         start_time = time.time()
         lo = i
         hi = min(max_top, i + bs)
         src_ids = torch.arange(lo, hi).type(torch.LongTensor)
-        if torch.cuda.is_available():
-            src_ids = src_ids.cuda()
-        temp = get_knn_list(src_ids, src_emb, params, suffix_str, method='csls')
-
+        src_ids = to_cuda(src_ids, use_cuda)
+        temp = get_knn_list(src_ids, src_emb, params, suffix_str, context=context, method=method, use_cuda=use_cuda)
         if knn_list is None:
             knn_list = temp
         else:
             knn_list = torch.cat([knn_list, temp], 0)
         print("Time taken for iteration %d: %.2f" % (i, time.time() - start_time))
+
     knn_list = knn_list.cpu().numpy()
     with open('full_knn_list_' + suffix_str + '.pkl', 'wb') as fp:
         pickle.dump(knn_list, fp, pickle.HIGHEST_PROTOCOL)

@@ -105,6 +105,9 @@ def main():
     params = parse_arguments()
     params = construct_file_args(params)
 
+    if params.context == 1:
+        params.g_input_size *= 2
+
     if params.mode == 0:
         u = util.Utils(params)
         u.run()
@@ -142,7 +145,7 @@ def main():
                           output_size=params.g_output_size, hyperparams=get_hyperparams(params, disc=False))
             g.load_state_dict(torch.load(model_file_path, map_location='cpu'))
 
-            if params.context == 1:
+            if params.context > 0:
                 try:
                     knn_list = pickle.load(open('full_knn_list_' + params.suffix_str + '.pkl', 'rb'))
                 except FileNotFoundError:
@@ -150,7 +153,7 @@ def main():
                 knn_emb = util.convert_to_embeddings(knn_list, use_cuda=False)
                 attn = Attention(atype=params.atype)
                 indices = torch.arange(params.top_frequent_words).type(torch.LongTensor)
-                mapped_src_emb = g(construct_input(knn_emb, indices, embs[0], attn)).data
+                mapped_src_emb = g(construct_input(knn_emb, indices, embs[0], attn, params.context)).data
             else:
                 mapped_src_emb = g(embs[0].weight).data
 
