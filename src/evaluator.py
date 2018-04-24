@@ -28,10 +28,7 @@ class Evaluator:
         self.mask_procrustes = params.mask_procrustes
         self.num_refine = params.num_refine
 
-        src = params.src_lang
-        tgt = params.tgt_lang
-
-        self.suffix_str = src + '_' + tgt
+        self.suffix_str = params.suffix_str
 
         self.validation_file = 'validation_' + self.suffix_str + '.npy'
         self.validation_file_new = 'validation_new_' + self.suffix_str + '.npy'
@@ -44,7 +41,7 @@ class Evaluator:
         self.valid.append(self.prepare_val(self.validation_file))
         self.valid.append(self.prepare_val(self.validation_file_new))
 
-        self.tgt_wrd2id = util.load_npy_one(self.data_dir, "tgt_ids_" + self.suffix_str + ".npy")
+        self.tgt_wrd2id = util.load_npy_one(self.data_dir, "tgt_ids_" + self.suffix_str + ".npy", dict=True)
         self.tgt_id2wrd = dict(zip(self.tgt_wrd2id.values(), self.tgt_wrd2id.keys()))
 
         self.r_source = None
@@ -60,7 +57,7 @@ class Evaluator:
         valid_dict_ids = util.map_dict2ids(self.data_dir, validation_file, self.suffix_str)
         valid['valid_src_word_ids'] = torch.from_numpy(np.array(list(valid_dict_ids.keys())))
         valid['valid_tgt_word_ids'] = list(valid_dict_ids.values())
-        valid['valid_dict'] = util.load_npy_one(self.data_dir, validation_file)
+        valid['valid_dict'] = util.load_npy_one(self.data_dir, validation_file, dict=True)
         return valid
 
     def get_all_precisions(self, mapped_src_emb):

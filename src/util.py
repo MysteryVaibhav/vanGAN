@@ -128,8 +128,11 @@ class Utils:
                     f.write(wrd + " " + tgt + "\n")
 
 
-def load_npy_one(data_dir, fname):
-    return np.load(data_dir + fname).item()
+def load_npy_one(data_dir, fname, dict=False):
+    if dict:
+        return np.load(data_dir + fname).item()
+    else:
+        return np.load(data_dir + fname)
 
 
 def load_npy_two(data_dir, src_fname, tgt_fname, dict=False):
@@ -144,7 +147,7 @@ def load_npy_two(data_dir, src_fname, tgt_fname, dict=False):
 
 # Validation set in a dictionary form {src_wrd: [tgt_wrd_1, tgt_wrd_2, ...]}
 def map_dict2ids(data_dir, dict_fname, suffix_str):
-    dict_wrd = load_npy_one(data_dir, dict_fname)
+    dict_wrd = load_npy_one(data_dir, dict_fname, dict=True)
     src_ids, tgt_ids = load_npy_two(data_dir, 'src_ids_' + suffix_str + '.npy', 'tgt_ids_' + suffix_str +'.npy', dict=True)
     dict_ids = {}
     for src_wrd, tgt_list in dict_wrd.items():

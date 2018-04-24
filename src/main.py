@@ -112,27 +112,30 @@ def main():
     else:
         print("Reading embedding numpy files...", end='')
         use_cuda = False
+        emb_str = ['src', 'tgt']
+        file_ext = '.npy'
+
         if params.mode == 1:
             use_cuda = True
 
-        src_emb_array, tgt_emb_array = util.load_npy_two(params.data_dir, 'src_' + suffix_str + '.npy', 'tgt_' + suffix_str + '.npy')
+        emb_arrays = [util.load_npy_one(params.data_dir, e + '_' + params.suffix_str + file_ext) for e in emb_str]
         print("Done.")
+
         print("Converting arrays to embedding layers...", end='')
-        src_emb = util.convert_to_embeddings(src_emb_array, use_cuda)
-        tgt_emb = util.convert_to_embeddings(tgt_emb_array, use_cuda)
+        embs = [util.convert_to_embeddings(erray, use_cuda) for erray in emb_arrays]
         print("Done.")
         
         if params.center_embeddings > 0:
-            util.center_embeddings(src_emb.weight.data)
-            util.center_embeddings(tgt_emb.weight.data)
+            for e in embs:
+                util.center_embeddings(e.weight.data)
         
         if params.mode == 1:
             t = Trainer(params)
-            g = t.train(src_emb, tgt_emb)
+            g = t.train(embs[0], embs[1])
 
         elif params.mode == 2:
             params = _get_eval_params(params)
-            evaluator = Evaluator(params, src_emb.weight.data, tgt_emb.weight.data)
+            evaluator = Evaluator(params, embs[0].weight.data, embs[1].weight.data)
 
             model_file_path = os.path.join(params.model_dir, params.model_file_name)
             g = Generator(input_size=params.g_input_size, hidden_size=params.g_hidden_size,
@@ -141,15 +144,15 @@ def main():
 
             if params.context == 1:
                 try:
-                    knn_list = pickle.load(open('full_knn_list_' + suffix_str + '.pkl', 'rb'))
+                    knn_list = pickle.load(open('full_knn_list_' + params.suffix_str + '.pkl', 'rb'))
                 except FileNotFoundError:
                     print("k-nn file not found!")
                 knn_emb = util.convert_to_embeddings(knn_list, use_cuda=False)
                 attn = Attention(atype=params.atype)
                 indices = torch.arange(params.top_frequent_words).type(torch.LongTensor)
-                mapped_src_emb = g(construct_input(knn_emb, indices, src_emb, attn)).data
+                mapped_src_emb = g(construct_input(knn_emb, indices, embs[0], attn)).data
             else:
-                mapped_src_emb = g(src_emb.weight).data
+                mapped_src_emb = g(embs[0].weight).data
 
 #             if torch.cuda.is_available():
 #                 g = g.cuda()
