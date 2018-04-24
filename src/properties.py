@@ -12,12 +12,12 @@ PLOT_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__
 if not os.path.exists(PLOT_DIR):
     os.makedirs(PLOT_DIR)
 
-EN_WORD_TO_VEC = 'wiki.en.vec'
-IT_WORD_TO_VEC = 'wiki.es.vec'
-VALIDATION_FILE = 'en-es.5000-6500.txt'
-FULL_FILE = 'en-es.txt'
-NEW_VAL_FILE = 'en-es-new.txt'
-GOLD_FILE = 'en-es.0-5000.txt'
+# EN_WORD_TO_VEC = 'wiki.en.vec'
+# IT_WORD_TO_VEC = 'wiki.es.vec'
+# VALIDATION_FILE = 'en-es.5000-6500.txt'
+# FULL_FILE = 'en-es.txt'
+# NEW_VAL_FILE = 'en-es-new.txt'
+# GOLD_FILE = 'en-es.0-5000.txt'
 
 # For Wacky dataset:
 

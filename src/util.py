@@ -19,28 +19,26 @@ class Utils:
         self.new_validation_file = params.new_validation_file
         self.gold_file = params.gold_file
         self.top_frequent_words = params.top_frequent_words
+        self.suffix_str = params.suffix_str
 
     def run(self):
-        src = self.params.src_lang
-        tgt = self.params.tgt_lang
-
-        suffix_str = src + '_' + tgt
-        print("Reading source word embeddings...")
+        suffix_str = self.suffix_str
+        print("Reading source word embeddings...", end='')
         word2vec_src = self.save_word_vectors(self.src_file, save=True, save_file_as='src_' + suffix_str)
         print("Done.")
         print(word2vec_src.shape)
-        print("Reading target word embeddings...")
+        print("Reading target word embeddings...", end='')
         word2vec_tgt = self.save_word_vectors(self.tgt_file, save=True, save_file_as='tgt_' + suffix_str)
         print("Done.")
         print(word2vec_tgt.shape)
-        print("Reading validation file...")
+        print("Reading validation file...", end='')
         self.read_dictionary(self.validation_file, save_file_as="validation_" + suffix_str, save=True)
         print("Reading gold file...")
         self.read_dictionary(self.gold_file, save_file_as='gold_' + suffix_str, save=True)
-        print("Constructing source word-id map...")
+        print("Constructing source word-id map...", end='')
         self.save_word_ids_dicts(self.src_file, save=True, save_file_as='src_ids_' + suffix_str)
         print("Done.")
-        print("Constructing target word-id map...")
+        print("Constructing target word-id map...", end='')
         self.save_word_ids_dicts(self.tgt_file, save=True, save_file_as='tgt_ids_' + suffix_str)
 
         # print("Reading full file...")

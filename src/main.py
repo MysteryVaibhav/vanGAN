@@ -15,12 +15,12 @@ os.environ['KMP_DUPLICATE_LIB_OK'] = 'TRUE'
 def parse_arguments():
     parser = argparse.ArgumentParser(description='Argument Parser for Unsupervised Bilingual Lexicon Induction using GANs')
     parser.add_argument("--data_dir", dest="data_dir", type=str, default=DATA_DIR)
-    parser.add_argument("--src_file", dest="src_file", type=str, default=EN_WORD_TO_VEC)
-    parser.add_argument("--tgt_file", dest="tgt_file", type=str, default=IT_WORD_TO_VEC)
-    parser.add_argument("--validation_file", dest="validation_file", type=str, default=VALIDATION_FILE)
-    parser.add_argument("--full_file", dest="full_file", type=str, default=FULL_FILE)
-    parser.add_argument("--new_validation_file", dest="new_validation_file", type=str, default=NEW_VAL_FILE)
-    parser.add_argument("--gold_file", dest="gold_file", type=str, default=GOLD_FILE)
+    # parser.add_argument("--src_file", dest="src_file", type=str, default=EN_WORD_TO_VEC)
+    # parser.add_argument("--tgt_file", dest="tgt_file", type=str, default=IT_WORD_TO_VEC)
+    # parser.add_argument("--validation_file", dest="validation_file", type=str, default=VALIDATION_FILE)
+    # parser.add_argument("--full_file", dest="full_file", type=str, default=FULL_FILE)
+    # parser.add_argument("--new_validation_file", dest="new_validation_file", type=str, default=NEW_VAL_FILE)
+    # parser.add_argument("--gold_file", dest="gold_file", type=str, default=GOLD_FILE)
 
     parser.add_argument("--g_input_size", dest="g_input_size", type=int, default=g_input_size)
     parser.add_argument("--g_output_size", dest="g_output_size", type=int, default=g_output_size)
@@ -87,27 +87,37 @@ def _get_eval_params(params):
     return params
 
 
+def construct_file_args(params):
+    params = copy.deepcopy(params)
+    src = params.src_lang
+    tgt = params.tgt_lang
+    params.suffix_str = src + '_' + tgt
+    params.src_file = 'wiki.' + src + '.vec'
+    params.tgt_file = 'wiki.' + tgt + '.vec'
+    params.validation_file = src + '-' + tgt + '.5000-6500.txt'
+    params.full_file = src + '-' + tgt + '.txt'
+    params.new_validation_file = src + '-' + tgt + '-new.txt'
+    params.gold_file = src + '-' + tgt + '.0-5000.txt'
+    return params
+
+
 def main():
     params = parse_arguments()
+    params = construct_file_args(params)
 
     if params.mode == 0:
         u = util.Utils(params)
         u.run()
 
     else:
-        print("Reading embedding numpy files...")
+        print("Reading embedding numpy files...", end='')
         use_cuda = False
         if params.mode == 1:
             use_cuda = True
 
-        src = params.src_lang
-        tgt = params.tgt_lang
-
-        suffix_str = src + '_' + tgt
-
         src_emb_array, tgt_emb_array = util.load_npy_two(params.data_dir, 'src_' + suffix_str + '.npy', 'tgt_' + suffix_str + '.npy')
         print("Done.")
-        print("Converting arrays to embedding layers...")
+        print("Converting arrays to embedding layers...", end='')
         src_emb = util.convert_to_embeddings(src_emb_array, use_cuda)
         tgt_emb = util.convert_to_embeddings(tgt_emb_array, use_cuda)
         print("Done.")
