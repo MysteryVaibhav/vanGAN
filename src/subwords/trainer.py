@@ -117,23 +117,17 @@ class Trainer:
                             d_optimizer.zero_grad()  # Reset the gradients
                             src_optimizer.zero_grad()
                             d.train()
-                            X, y, src_vecs = self.get_batch_data(src_data, tgt_data, g)
+
+                            X, y, _ = self.get_batch_data(src_data, tgt_data, g)
                             pred = d(X)
                             d_loss = loss_fn(pred, y)
-                            src_loss = 1 - F.cosine_similarity(*src_vecs).mean()
-                            loss = d_loss * penalty * src_loss
-                            loss.backward()  # compute/store gradients, but don't change params
+                            d_loss.backward()
+                            d_optimizer.step()
+
                             d_losses.append(d_loss.data.cpu().numpy())
                             discriminator_decision = pred.data.cpu().numpy()
                             hit += np.sum(discriminator_decision[:params.mini_batch_size] >= 0.5)
                             hit += np.sum(discriminator_decision[params.mini_batch_size:] < 0.5)
-                            # Only optimizes D's parameters; changes based on stored gradients from backward()
-                            d_optimizer.step()
-                            src_optimizer.step()
-
-                            # # Clip weights
-                            # _clip(d, params.clip_value)
-                            # _clip(src_data.F, params.clip_value)
 
                             sys.stdout.write("[%d/%d] :: Discriminator Loss: %f \r" % (
                                 mini_batch, params.iters_in_epoch // params.mini_batch_size, np.asscalar(np.mean(d_losses))))
@@ -145,17 +139,18 @@ class Trainer:
                             # 2. Train G on D's response (but DO NOT train D on these labels)
                             g_optimizer.zero_grad()
                             src_optimizer.zero_grad()
-
                             d.eval()
+
                             X, y, src_vecs = self.get_batch_data(src_data, tgt_data, g)
                             pred = d(X)
                             g_loss = loss_fn(pred, 1 - y)
                             src_loss = 1 - F.cosine_similarity(*src_vecs).mean()
                             loss = g_loss * penalty * src_loss
                             loss.backward()
-                            g_losses.append(g_loss.data.cpu().numpy())
                             g_optimizer.step()  # Only optimizes G's parameters
                             src_optimizer.step()
+
+                            g_losses.append(g_loss.data.cpu().numpy())
 
                             # Orthogonalize
                             self.orthogonalize(g.map1.weight.data)
