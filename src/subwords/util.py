@@ -1,4 +1,3 @@
-from collections import namedtuple
 import numpy as np
 import torch
 import random
@@ -152,21 +151,36 @@ def pad(seqs, length=None, value=0):
     return [seq[:length] for seq in seqs_]
     
 
-def load_embeddings(filename):
-    """Load word embeddings from a .npz file.
+def load_subword_embeddings(filename):
+    """Load subword embeddings from a .npz file.
     """
     if not filename.endswith('.npz'):
         msg = 'Pretrained word embeddings must be in .npz'
         mst += ' Received ' + filename
         raise ValueError(msg)
     data = dict(np.load(filename))
-    emb = namedtuple('Data', ['E', 'F', 'vecs', 'seqs', 'idx2id', 'id2idx'])
-    emb.E = Embedding(data['W'])
-    emb.F = SubwordEmbedding(emb.E.size()[1], n_layers=0)
-    emb.seqs = torch.LongTensor(pad(data['seqs']))
-    emb.idx2id = data['idx2id']
-    emb.id2idx = {i: idx for idx, i in enumerate(emb.idx2id)}  # reverse
-    return emb
+    N = data['seqs'].shape[0]
+    D = data['W'].shape[1]
+    return {'E': Embedding(data['W']),
+            'F': SubwordEmbedding(D, n_layers=1),
+            'vecs': torch.FloatTensor(np.empty((N, D))),
+            'seqs': torch.LongTensor(pad(data['seqs'])),
+            'idx2id': data['idx2id'],
+            'id2idx': {i: idx for idx, i in enumerate(data['idx2id'])}}
+
+
+def load_word_embeddings(filename):
+    """Load word embeddings from a .txt file.
+    """
+    if not filename.endswith('.npz'):
+        msg = 'Pretrained word embeddings must be in .npz'
+        mst += ' Received ' + filename
+        raise ValueError(msg)
+    data = dict(np.load(filename))
+    return {'E': Embedding(data['W']),
+            'idx2word': data['idx2word'],
+            'word2idx': {i: word for word, i in enumerate(data['idx2word'])}}
+
 
 def read_validation_file(filename, src_indexer, tgt_indexer):
     """Read a validation file.
@@ -176,38 +190,40 @@ def read_validation_file(filename, src_indexer, tgt_indexer):
       `File format: <src:subword IDs>\t<tgt:subword IDs>`
     - indexer: map subword ID to an index starting from zero
     """
-    src_seqs, tgt_seqs = [], []
+    src_seqs, tgt_idx = [], []
     with open(filename) as f:
         for line in f:
-            src, tgt = [[int(subword) for subword in subwords.split()]
-                        for subwords in line.rstrip('\n').split('\t')]
+            row = line.rstrip('\n').split('\t')
+            src = [int(subword) for subword in row[2].split()]
+            tgt = row[1]
             try:
                 src_seqs_ = [src_indexer[subword] for subword in src]
-                tgt_seqs_ = [tgt_indexer[subword] for subword in tgt]
+                tgt_idx_ = tgt_indexer[tgt]
             except KeyError:
                 continue
             src_seqs.append(src_seqs_)
-            tgt_seqs.append(tgt_seqs_)
-    return np.array(src_seqs), np.array(tgt_seqs)
+            tgt_idx.append(tgt_idx_)
+    return np.array(src_seqs), np.array(tgt_idx)
 
 
-def drop_oov_from_validation_set(src_seqs, tgt_seqs, src_n_vocab, tgt_n_vocab):
+def drop_oov_from_validation_set(src_seqs, tgt_indices, src_n_vocab, tgt_n_vocab):
     """Drop a translation pair that contains OOV.
 
     Args:
-    - src, tgt: a list of subword sequences
+    - src, tgt: a list of (sub)word IDs
     - src_vocab, tgt_vocab: vocabulary of subwords
     """
     indices = []
-    for i, (src, tgt) in enumerate(zip(src_seqs, tgt_seqs)):
+    for i, (src, tgt) in enumerate(zip(src_seqs, tgt_indices)):
         # If a sequence contains OOV words, skip
         if any([idx >= src_n_vocab for idx in src]):
             continue
-        if any([idx >= tgt_n_vocab for idx in tgt]):
+        if tgt >= tgt_n_vocab:
             continue
         indices.append(i)  # memo an index
+    print('Validation: {} instances'.format(len(indices)))
 
-    return src_seqs[indices], tgt_seqs[indices]
+    return src_seqs[indices], tgt_indices[indices]
 
 
  

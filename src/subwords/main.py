@@ -74,7 +74,7 @@ def parse_arguments():
     parser.add_argument("--atype", dest="atype", type=str, default=atype)
 
     parser.add_argument("--src_lang", dest="src_lang", type=str, default='en')
-    parser.add_argument("--tgt_lang", dest="tgt_lang", type=str, default='zh')
+    parser.add_argument("--tgt_lang", dest="tgt_lang", type=str, default='es')
     return parser.parse_args()
 
 
@@ -104,21 +104,20 @@ def main():
 
         suffix_str = src + '_' + tgt
 
-        src_data = util.load_embeddings(os.path.join(params.data_dir, params.src_file))
-        tgt_data = util.load_embeddings(os.path.join(params.data_dir, params.tgt_file))
+        src_data = util.load_subword_embeddings(
+            os.path.join(params.data_dir, params.src_file))
+        tgt_data = util.load_word_embeddings(
+            os.path.join(params.data_dir, params.tgt_file))
         print("Done.")
 
         if params.center_embeddings > 0:  # centering
-            src_emb['W'].center()
-            tgt_emb['W'].center()
-        
+            src_data['E'].center()
+            tgt_data['E'].center()
 
         if params.mode == 1:
             # Memorize the original word embeddings
-            src_data.vecs = src_data.F(
-                Variable(src_data.seqs), src_data.E, transform=False).data
-            tgt_data.vecs = tgt_data.F(
-                Variable(tgt_data.seqs), tgt_data.E, transform=False).data
+            src_data['vecs'].copy_(src_data['F'](
+                Variable(src_data['seqs']), src_data['E'], transform=False).data)
             t = Trainer(params)
             g = t.train(src_data, tgt_data)
 

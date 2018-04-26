@@ -32,7 +32,7 @@ def main(args):
     vocab = [set(), set()]
     with open(path_dict) as f:
         for line in f:
-            for i, word in enumerate(line.rstrip('\n').split()):
+            for i, word in enumerate(line.rstrip('\n').split(' ')):
                 vocab[i].add(word)
 
     indices = [{}, {}]
@@ -51,9 +51,10 @@ def main(args):
     with open(path_output, 'w') as of:
         with open(path_dict) as f:
             for line in f:
-                buff = []
+                words = line.rstrip('\n').split(' ')
+                buff = words[:]
                 # word -> indices (space-delimited)
-                for i, word in enumerate(line.rstrip('\n').split()):
+                for i, word in enumerate(words):
                     buff.append(' ' .join(str(i) for i in indices[i][word]))
                 of.write('\t'.join(buff) + '\n')
 

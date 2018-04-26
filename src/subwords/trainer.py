@@ -65,14 +65,11 @@ class Trainer:
         monitor = Monitor(params, src_data=src_data, tgt_data=tgt_data)
 
         if torch.cuda.is_available():
-            src_data.E = src_data.E.cuda()
-            src_data.F = src_data.F.cuda()
-            tgt_data.E = tgt_data.E.cuda()
-            tgt_data.F = tgt_data.F.cuda()
-            src_data.vecs = src_data.vecs.cuda()
-            tgt_data.vecs = tgt_data.vecs.cuda()
-            src_data.seqs = src_data.seqs.cuda()
-            tgt_data.seqs = tgt_data.seqs.cuda()
+            src_data['E'].cuda()
+            src_data['F'].cuda()
+            tgt_data['E'].cuda()
+            src_data['vecs'] = src_data['vecs'].cuda()
+            src_data['seqs'] = src_data['seqs'].cuda()
 
         for _ in range(params.num_random_seeds):
 
@@ -88,13 +85,13 @@ class Trainer:
             loss_fn = torch.nn.BCELoss()
             d_optimizer = optim.SGD(d.parameters(), lr=params.d_learning_rate)
             g_optimizer = optim.SGD(g.parameters(), lr=params.g_learning_rate)
-            src_optimizer = optim.SGD(src_data.F.parameters(), lr=params.d_learning_rate)
+            src_optimizer = optim.SGD(src_data['F'].parameters(), lr=params.d_learning_rate)
             # tgt_optimizer = optim.SGD(tgt.parameters(), lr=params.d_learning_rate) (not required?)
 
             if torch.cuda.is_available():
                 # Move the network and the optimizer to the GPU
-                g = g.cuda()
-                d = d.cuda()
+                g.cuda()
+                d.cuda()
                 loss_fn = loss_fn.cuda()
             # true_dict = get_true_dict(params.data_dir)
             d_acc_epochs = []
@@ -214,17 +211,18 @@ class Trainer:
                        coef=0.01):
         params = self.params
         # Sample params.mini_batch_size vectors
-        n = min(params.most_frequent_sampling_size, src_data.seqs.size(0))
-        src_indices = torch.randperm(n)[:params.mini_batch_size]
-        tgt_indices = torch.randperm(n)[:params.mini_batch_size]
-        if src_data.E.emb.weight.is_cuda:  # using GPU
-            src_indices, tgt_indices = src_indices.cuda(), tgt_indices.cuda()
-        src_batch, tgt_batch = src_data.seqs[src_indices], tgt_data.seqs[tgt_indices]
+        n_src = min(params.most_frequent_sampling_size, src_data['seqs'].size(0))
+        n_tgt = min(params.most_frequent_sampling_size, tgt_data['idx2word'].shape[0])
+        src_indices = torch.randperm(n_src)[:params.mini_batch_size]
+        tgt_batch = torch.randperm(n_tgt)[:params.mini_batch_size]
+        if src_data['E'].emb.weight.is_cuda:  # using GPU
+            src_indices, tgt_batch = src_indices.cuda(), tgt_batch.cuda()
+        src_batch = src_data['seqs'][src_indices]
         # Generate fake target-side vectors
-        src_vecs0 = Variable(src_data.vecs[src_indices])  # original
-        src_vecs = src_data.F(Variable(src_batch), src_data.E)
+        src_vecs0 = Variable(src_data['vecs'][src_indices])  # original
+        src_vecs = src_data['F'](Variable(src_batch), src_data['E'])
         fake = g(src_vecs)
-        real = tgt_data.F(Variable(tgt_batch), tgt_data.E, transform=False)
+        real = tgt_data['E'](Variable(tgt_batch))
         X = torch.cat([fake, real], 0)
         y = to_variable(torch.zeros(2 * params.mini_batch_size))
         y[:params.mini_batch_size] = 1 - params.smoothing   # As per fb implementation
