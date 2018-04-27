@@ -38,8 +38,7 @@ def main(args):
                 vocab.add(v)
             if i == args.topn:
                 break
-    # idx = 0 is reserved for UNK
-    idx2id = [-1] + sorted(list(vocab))  # index (starting from 1) to word ID
+    idx2id = sorted(list(vocab))
     id2idx = {i: idx for idx, i in enumerate(idx2id)}  # reverse
     # Re-index
     for i, seq in enumerate(subword_seqs):
@@ -53,8 +52,7 @@ def main(args):
     if verbose:
         logger.info('Done.')
 
-    vecs = [model.get_input_vector(i) for i in idx2id]
-    W = np.r_[[np.zeros(vecs[0].shape[0])] + vecs]
+    W = np.r_[[model.get_input_vector(i) for i in idx2id]]
     if verbose:
         logger.info('W: {}'.format(W.shape))
 

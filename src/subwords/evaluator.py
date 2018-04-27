@@ -198,7 +198,7 @@ class Evaluator:
         hits = {i: 0 for i in gold.keys()}  # correct or not
         # TODO: dict
         for src_idx, nn in zip(src_indices, pred):
-            if set(gold[src_idx]).intersection(nn) == 0:
+            if len(set(gold[src_idx]).intersection(nn)) > 0:
                 hits[src_idx] = 1
 
         return sum(hits.values()) / float(len(hits))

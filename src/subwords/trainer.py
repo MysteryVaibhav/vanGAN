@@ -94,7 +94,6 @@ class Trainer:
                 d.cuda()
                 loss_fn = loss_fn.cuda()
             evaluator.precision(g, src_data, tgt_data)
-            raise
 
             # Define optimizers
             d_optimizer = optim.SGD(d.parameters(), lr=params.d_learning_rate)
@@ -120,7 +119,6 @@ class Trainer:
                     for mini_batch in range(0, params.iters_in_epoch // params.mini_batch_size):
                         for d_index in range(params.d_steps):
                             d_optimizer.zero_grad()  # Reset the gradients
-                            src_optimizer.zero_grad()
                             d.train()
 
                             X, y, _ = self.get_batch_data(src_data, tgt_data, g)
@@ -153,7 +151,7 @@ class Trainer:
                             loss = g_loss * penalty * src_loss
                             loss.backward()
                             g_optimizer.step()  # Only optimizes G's parameters
-                            # src_optimizer.step()
+                            src_optimizer.step()
 
                             g_losses.append(g_loss.data.cpu().numpy())
 

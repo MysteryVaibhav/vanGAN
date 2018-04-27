@@ -120,7 +120,7 @@ def main():
         if params.mode == 1:
             # Memorize the original word embeddings
             src_data['vecs'].copy_(src_data['F'](
-                Variable(src_data['seqs']), src_data['E'], transform=False).data)
+                src_data['seqs'], src_data['E'], transform=False).data)
             t = Trainer(params)
             g = t.train(src_data, tgt_data)
 
