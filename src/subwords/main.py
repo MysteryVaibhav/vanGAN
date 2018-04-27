@@ -56,9 +56,11 @@ def parse_arguments():
     parser.add_argument("--add_noise", dest="add_noise", type=int, default=add_noise)
     parser.add_argument("--noise_mean", dest="noise_mean", type=float, default=noise_mean)
     parser.add_argument("--noise_var", dest="noise_var", type=float, default=noise_var)
-
-    parser.add_argument("--K", dest="K", type=int, default=K)
+    # Evaluation
+    parser.add_argument("--top_ks", nargs='+', type=int, default=[1, 5, 10])
+    parser.add_argument("--sim_metrics", nargs='+', default=['nn'])
     parser.add_argument("--top_frequent_words", dest="top_frequent_words", type=int, default=top_frequent_words)
+    parser.add_argument('--methods', nargs='+', default=['adv'])
 
     parser.add_argument("--csls_k", dest="csls_k", type=int, default=csls_k)
 
@@ -75,6 +77,7 @@ def parse_arguments():
 
     parser.add_argument("--src_lang", dest="src_lang", type=str, default='en')
     parser.add_argument("--tgt_lang", dest="tgt_lang", type=str, default='es')
+    parser.add_argument('--model_file', help='model file of a generator')
     return parser.parse_args()
 
 

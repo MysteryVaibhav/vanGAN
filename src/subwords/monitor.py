@@ -16,19 +16,19 @@ class Monitor():
         "docstring"
         self.data_dir = params.data_dir
 
-        self.src_emb = src_data['E']
+        self.src_n_vocab = src_data['E'].size()[0]
         self.src_indexer = src_data['id2idx']
-        self.tgt_emb = tgt_data['E']
+        self.tgt_n_vocab = tgt_data['E'].size()[0]
         self.tgt_indexer = tgt_data['word2idx']
+
         self.setup_validation_data(params.validation_file)
 
     def setup_validation_data(self, filename):
         """Read a validation set from a file."""
-        src_seqs, tgt_indices = read_validation_file(
+        _, src_seqs, tgt_indices = read_validation_file(
             path.join(self.data_dir, filename), self.src_indexer, self.tgt_indexer)
-        src_n_vocab, tgt_n_vocab = self.src_emb.size()[0], self.tgt_emb.size()[0]
         src_seqs, tgt_indices = drop_oov_from_validation_set(
-            src_seqs, tgt_indices, src_n_vocab, tgt_n_vocab)
+            src_seqs, tgt_indices, self.src_n_vocab, self.tgt_n_vocab)
         self.src_seqs = torch.LongTensor(pad(src_seqs))
         self.tgt_indices = torch.LongTensor(tgt_indices)
         if torch.cuda.is_available():

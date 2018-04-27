@@ -62,6 +62,7 @@ class Trainer:
         tgt_lang = params.tgt_lang
         self.suffix_str = src_lang + '_' + tgt_lang
 
+        evaluator = Evaluator(params, src_data=src_data, tgt_data=tgt_data)
         monitor = Monitor(params, src_data=src_data, tgt_data=tgt_data)
 
         if torch.cuda.is_available():
@@ -71,28 +72,35 @@ class Trainer:
             src_data['vecs'] = src_data['vecs'].cuda()
             src_data['seqs'] = src_data['seqs'].cuda()
 
+        # Loss function
+        loss_fn = torch.nn.BCELoss()
+
         for _ in range(params.num_random_seeds):
 
             # Create models
             g = Generator(input_size=params.g_input_size, hidden_size=params.g_hidden_size,
-                          output_size=params.g_output_size, hyperparams=get_hyperparams(params, disc=False))
+                          output_size=params.g_output_size)
+            if self.params.model_file:
+                print('Load a model from ' + self.params.model_file)
+                g.load(self.params.model_file)
             d = Discriminator(input_size=params.d_input_size, hidden_size=params.d_hidden_size,
                               output_size=params.d_output_size, hyperparams=get_hyperparams(params, disc=True))
             seed = random.randint(0, 1000)
             self.initialize_exp(seed)
-
-            # Define loss function and optimizers
-            loss_fn = torch.nn.BCELoss()
-            d_optimizer = optim.SGD(d.parameters(), lr=params.d_learning_rate)
-            g_optimizer = optim.SGD(g.parameters(), lr=params.g_learning_rate)
-            src_optimizer = optim.SGD(src_data['F'].parameters(), lr=params.d_learning_rate)
-            # tgt_optimizer = optim.SGD(tgt.parameters(), lr=params.d_learning_rate) (not required?)
 
             if torch.cuda.is_available():
                 # Move the network and the optimizer to the GPU
                 g.cuda()
                 d.cuda()
                 loss_fn = loss_fn.cuda()
+            evaluator.precision(g, src_data, tgt_data)
+            raise
+
+            # Define optimizers
+            d_optimizer = optim.SGD(d.parameters(), lr=params.d_learning_rate)
+            g_optimizer = optim.SGD(g.parameters(), lr=params.g_learning_rate)
+            src_optimizer = optim.SGD(src_data['F'].parameters(), lr=params.d_learning_rate)
+
             # true_dict = get_true_dict(params.data_dir)
             d_acc_epochs = []
             g_loss_epochs = []
@@ -145,7 +153,7 @@ class Trainer:
                             loss = g_loss * penalty * src_loss
                             loss.backward()
                             g_optimizer.step()  # Only optimizes G's parameters
-                            src_optimizer.step()
+                            # src_optimizer.step()
 
                             g_losses.append(g_loss.data.cpu().numpy())
 
@@ -173,24 +181,16 @@ class Trainer:
                     d_optimizer.load_state_dict(d_optim_state)
 
                     if (epoch + 1) % params.print_every == 0:
+                        evaluator.precision(g, src_data, tgt_data)
                         sim = monitor.cosine_similarity(g, src_data, tgt_data)
                         print('Cos sim.: {:3f} (+/-{:.3})'.format(sim.mean(), sim.std()))
                         # log_file.write("{},{:.5f},{:.5f},{:.5f}\n".format(epoch + 1, np.asscalar(np.mean(d_losses)), hit / total, np.asscalar(np.mean(g_losses))))
                         # log_file.write(str(all_precisions) + "\n")
+
                         # Saving generator weights
-
-                        elems = ['generator_weights', self.suffix_str, 'seed', str(seed),
-                                 'mf', str(epoch), 'lr', 'params.g_learning_rate']
-                        torch.save(g.state_dict(), '_'.join(elems) + '.t7')
-
-                # Save the plot for discriminator accuracy and generator loss
-                fig = plt.figure()
-                plt.plot(range(0, params.num_epochs), d_acc_epochs, color='b', label='discriminator')
-                plt.plot(range(0, params.num_epochs), g_loss_epochs, color='r', label='generator')
-                plt.ylabel('accuracy/loss')
-                plt.xlabel('epochs')
-                plt.legend()
-                fig.savefig('d_g.png')
+                        # elems = ['generator_weights', self.suffix_str, 'seed', str(seed),
+                        #          'mf', str(epoch), 'lr', 'params.g_learning_rate']
+                        # torch.save(g.state_dict(), '_'.join(elems) + '.t7')
 
             except KeyboardInterrupt:
                 print("Interrupted.. saving model !!!")

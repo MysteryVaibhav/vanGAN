@@ -1,5 +1,7 @@
+from collections import defaultdict
 import util
 import torch
+from torch.autograd import Variable
 import numpy as np
 import json
 import platform
@@ -7,6 +9,11 @@ import time
 from sklearn.utils.extmath import randomized_svd
 import codecs
 import scipy
+from os import path
+
+from util import read_validation_file
+from util import drop_oov_from_validation_set
+from util import pad
 
 op_sys = platform.system()
 if op_sys == 'Darwin':
@@ -16,81 +23,86 @@ elif op_sys == 'Linux':
 else:
     raise 'Operating system not supported: %s' % op_sys
 
+VOCABSIZE = 10000
 
 class Evaluator:
-    def __init__(self, params, src_data, tgt_data, use_cuda=False):
+    def __init__(self, params, src_data, tgt_data):
+        self.batch_size = params.mini_batch_size
         self.data_dir = params.data_dir
-        self.ks = params.ks
-        self.methods = params.methods
-        self.models = params.models
-        self.refine = params.refine
+        self.top_ks = params.top_ks
+        self.sim_metrics = params.sim_metrics
+        # self.models = params.models
+        # self.refine = params.refine
         self.csls_k = params.csls_k
-        self.mask_procrustes = params.mask_procrustes
-        self.num_refine = params.num_refine
+        # self.mask_procrustes = params.mask_procrustes
+        # self.num_refine = params.num_refine
 
-        self.src_indexer = src_data.id2idx
-        self.tgt_indexer = tgt_data.id2idx
-
-        src = params.src_lang
-        tgt = params.tgt_lang
-
-        self.suffix_str = src + '_' + tgt
-
-        self.validation_file = 'validation_' + self.suffix_str + '.npy'
-        self.validation_file_new = 'validation_new_' + self.suffix_str + '.npy'
-        self.gold_file = 'gold_' + self.suffix_str + '.npy'
-
-        self.tgt_emb = tgt_emb
-        self.src_emb = src_emb
+        self.src_n_vocab = src_data['E'].size()[0]
+        self.src_indexer = src_data['id2idx']
+        self.tgt_n_vocab = tgt_data['E'].size()[0]
+        self.tgt_indexer = tgt_data['word2idx']
 
         self.valid = []
-        self.valid.append(self.prepare_val(self.validation_file))
-        self.valid.append(self.prepare_val(self.validation_file_new))
+        self.valid.append(self.setup_validation_data(params.validation_file))
 
-        self.tgt_wrd2id = util.load_npy_one(self.data_dir, "tgt_ids_" + self.suffix_str + ".npy")
-        self.tgt_id2wrd = dict(zip(self.tgt_wrd2id.values(), self.tgt_wrd2id.keys()))
-
-        self.r_source = None
-        self.r_target = None
-        self.r_target = None
-        self.use_cuda = use_cuda
         self.cosine_top = params.cosine_top
         self.refine_top = params.refine_top
 
-    def prepare_val(self, validation_file):
+    def setup_validation_data(self, filename):
+        """Read a validation set from a file."""
+        src_indices, src_seqs, tgt_indices = read_validation_file(
+            path.join(self.data_dir, filename), self.src_indexer, self.tgt_indexer)
+        # Drop pairs that contain OOV words (subwords)
+        src_seqs, tgt_indices = drop_oov_from_validation_set(
+            src_seqs, tgt_indices, self.src_n_vocab, self.tgt_n_vocab)
+
         valid = {}
-        valid_dict_ids = util.map_dict2ids(self.data_dir, validation_file, self.suffix_str)
-        valid['valid_src_word_ids'] = torch.from_numpy(np.array(list(valid_dict_ids.keys())))
-        valid['valid_tgt_word_ids'] = list(valid_dict_ids.values())
-        valid['valid_dict'] = util.load_npy_one(self.data_dir, validation_file)
+        valid['valid_src_subword_ids'] = torch.LongTensor(pad(src_seqs))
+        if torch.cuda.is_available():
+            valid['valid_src_subword_ids'] = valid['valid_src_subword_ids'].cuda()
+
+        valid['valid_src_word_ids'] = src_indices
+        valid['valid_tgt_word_ids'] = tgt_indices
+        valid['gold'] = defaultdict(list)
+        for src, tgt in zip(src_indices, tgt_indices):
+            valid['gold'][src].append(tgt)
+
         return valid
 
-    def get_all_precisions(self, mapped_src_emb):
-        # Normalize the embeddings
-        mapped_src_emb = mapped_src_emb / mapped_src_emb.norm(2, 1)[:, None]
-        tgt_emb = self.tgt_emb / self.tgt_emb.norm(2, 1)[:, None]
+    def precision(self, g, src_data, tgt_data):
+        """Evaluate precision."""
+        # # Fetch embeddings
+        # batches = src_data['seqs'][:VOCABSIZE].split(self.batch_size)
+        # mapped_src_emb = torch.cat([g(src_data['F'](batch, src_data['E'])).detach()
+        #                             for batch in batches])
 
-        # Calculate r_target
-        if 'csls' in self.methods:
-            print("Calculating r_target...")
-            start_time = time.time()
-            self.r_target = common_csls_step(self.csls_k, mapped_src_emb, tgt_emb)
-            print("Time taken for making r_target: ", time.time() - start_time)
+        # # Normalize the embeddings
+        # mapped_src_emb = mapped_src_emb / mapped_src_emb.norm(2, 1)[:, None]
+        # tgt_emb = tgt_emb / tgt_emb.norm(2, 1)[:, None]
 
-        adv_mapped_src_emb = mapped_src_emb
+        # # Calculate r_target
+        # if 'csls' in self.sim_metrics:
+        #     print("Calculating r_target...")
+        #     start_time = time.time()
+        #     self.r_target = common_csls_step(self.csls_k, mapped_src_emb, tgt_emb)
+        #     print("Time taken for making r_target: ", time.time() - start_time)
 
-        if 'procrustes' in self.models:
-            procrustes_mapped_src_emb = self.get_procrustes_mapping()
 
-        if 'with-ref' in self.refine:
-            print("Performing refinement...")
-            start_time = time.time()
-            for _ in range(self.num_refine):
-                mapped_src_emb = self.get_refined_mapping(mapped_src_emb, tgt_emb)
-                mapped_src_emb = mapped_src_emb / mapped_src_emb.norm(2, 1)[:, None]
-                self.r_target = common_csls_step(self.csls_k, mapped_src_emb, tgt_emb)
-            refined_mapped_src_emb = mapped_src_emb
-            print("Time taken for refinement: ", time.time() - start_time)
+        # if 'with-ref' in self.refine:
+        #     print("Performing refinement...")
+        #     start_time = time.time()
+        #     for _ in range(self.num_refine):
+        #         mapped_src_emb = self.get_refined_mapping(mapped_src_emb, tgt_emb)
+        #         mapped_src_emb = mapped_src_emb / mapped_src_emb.norm(2, 1)[:, None]
+        #         self.r_target = common_csls_step(self.csls_k, mapped_src_emb, tgt_emb)
+        #     refined_mapped_src_emb = mapped_src_emb
+        #     print("Time taken for refinement: ", time.time() - start_time)
+
+        # adv_mapped_src_emb = mapped_src_emb
+
+        # Target-side embeddings
+        tgt_emb = tgt_data['E'].emb.weight
+        tgt_emb /= tgt_emb.norm(2, dim=1).view((-1, 1))
 
         start_time = time.time()
         all_precisions = {}
@@ -99,62 +111,97 @@ class Evaluator:
         save = False
 
         for it, v in enumerate(self.valid):
-            if torch.cuda.is_available() and self.use_cuda:
-                v['valid_src_word_ids'] = v['valid_src_word_ids'].cuda()
-            
-            if it == 0:
-                key = 'validation'
-            else:
-                key = 'validation-new'
-            all_precisions[key] = {}
+            dataset = 'validation' if it == 0 else 'validation-new'
+            all_precisions[dataset] = {}
 
-            for mod in self.models:
-                if mod == 'procrustes':
-                    mapped_src_emb = procrustes_mapped_src_emb.clone()
-                elif mod == 'adv':
-                    mapped_src_emb = adv_mapped_src_emb.clone()
-                else:
-                    raise 'Model not implemented: %s' % mod
+            # Fetch embeddings
+            batches = v['valid_src_subword_ids'].split(self.batch_size)
+            mapped_src_emb = torch.cat([g(src_data['F'](batch, src_data['E'])).detach()
+                                        for batch in batches])
+            mapped_src_emb /= mapped_src_emb.norm(2, dim=1).view((-1, 1))
+            for m in self.sim_metrics:
+                indices = self.__get_knn(tgt_emb, mapped_src_emb,
+                                         k=max(self.top_ks), metric=m)
+                all_precisions[dataset][m] = {}
+                for k in self.top_ks:
+                    p = self.__precision(
+                        pred=indices[:, :k], src_indices=v['valid_src_word_ids'],
+                        gold=v['gold'], buckets=buckets, save=save)
+                    all_precisions[dataset][m][k] = p
+            # for mod in self.models:
+            #     if mod == 'procrustes':
+            #         mapped_src_emb = procrustes_mapped_src_emb.clone()
+            #     elif mod == 'adv':
+            #         mapped_src_emb = adv_mapped_src_emb.clone()
+            #     else:
+            #         raise 'Model not implemented: %s' % mod
                     
-                all_precisions[key][mod] = {}
+            #     all_precisions[key][mod] = {}
 
-                for r in self.refine:
-                    if r == 'with-ref':
-                        if mod == 'procrustes':
-                            continue
-                        else:
-                            mapped_src_emb = refined_mapped_src_emb.clone()
+            #     for r in self.refine:
+            #         if r == 'with-ref':
+            #             if mod == 'procrustes':
+            #                 continue
+            #             else:
+            #                 mapped_src_emb = refined_mapped_src_emb.clone()
                     
-                    mapped_src_emb = mapped_src_emb / mapped_src_emb.norm(2, 1)[:, None]
+            #         mapped_src_emb = mapped_src_emb / mapped_src_emb.norm(2, 1)[:, None]
                     
-                    if 'csls' in self.methods:
-                        self.r_source = common_csls_step(self.csls_k, tgt_emb, mapped_src_emb[v['valid_src_word_ids']])
-                        start_time = time.time()
-                        self.r_target = common_csls_step(self.csls_k, mapped_src_emb, tgt_emb)
-                        
-                    all_precisions[key][mod][r] = {}
+            #         if 'csls' in self.methods:
+            #             self.r_source = common_csls_step(
+            #                 self.csls_k, tgt_emb, mapped_src_emb[v['valid_src_word_ids']])
+            #             start_time = time.time()
+            #             self.r_target = common_csls_step(
+            #                 self.csls_k, mapped_src_emb, tgt_emb)
 
-                    for m in self.methods:
-                        all_precisions[key][mod][r][m] = {}
+            #         all_precisions[key][mod][r] = {}
 
-                        for k in self.ks:
-                            if key == 'validation-new' and mod == 'adv' and r == 'with-ref' and m == 'csls' and k == 1:
-                                buckets = 5
-                                save = True
+            #         for m in self.methods:
+            #             all_precisions[key][mod][r][m] = {}
 
-                            p = self.get_precision_k(k, tgt_emb, mapped_src_emb, v, method=m, buckets=buckets, save=save)
-                            if not save:
-                                print("key: %s, model: %s, refine: %s, method: %s, k: %d, prec: %f" % (key, mod, r, m, k, p))
-                            else:
-                                print("key: %s, model: %s, refine: %s, method: %s, k: %d" % (key, mod, r, m, k))
-                                print("precision: ", p)
-                            all_precisions[key][mod][r][m][k] = p
+            #             for k in self.ks:
+            #                 if key == 'validation-new' and mod == 'adv' and r == 'with-ref' and m == 'csls' and k == 1:
+            #                     buckets = 5
+            #                     save = True
 
-                            buckets = None
-                            save = False
-        print("Time taken to run main loop: ", time.time() - start_time)
+            #                 p = self.get_precision_k(k, tgt_emb, mapped_src_emb, v, method=m, buckets=buckets, save=save)
+            #                 if not save:
+            #                     print("key: %s, model: %s, refine: %s, method: %s, k: %d, prec: %f" % (key, mod, r, m, k, p))
+            #                 else:
+            #                     print("key: %s, model: %s, refine: %s, method: %s, k: %d" % (key, mod, r, m, k))
+            #                     print("precision: ", p)
+            #                 all_precisions[key][mod][r][m][k] = p
+
+            #                 buckets = None
+            #                 save = False
+        print('Time taken to run main loop: ', time.time() - start_time)
         print(json.dumps(all_precisions, indent=2))
         return all_precisions
+
+    def __get_knn(self, tgt_emb, mapped_src_emb, k=1, metric='csls'):
+        if metric == 'nn':
+            _, indices = get_knn_indices(k, tgt_emb, mapped_src_emb)
+            return indices
+
+        if metric == 'csls':
+            raise NotImplementedError('CSLS is not implemented yet')
+            r_source = calc_csls_discount(
+                self.csls_k, mapped_src_emb, mapped_src_emb)
+            r_source = calc_csls_discount(
+                self.csls_k, tgt_emb, mapped_src_emb)
+            indices = get_csls_indices(k, xb, xq, self.r_source, self.r_target)
+            return indices
+
+        raise NotImplementedError('Metric not implemented: ' + metric)
+
+    def __precision(self, pred, src_indices, gold, buckets=None, save=False):
+        hits = {i: 0 for i in gold.keys()}  # correct or not
+        # TODO: dict
+        for src_idx, nn in zip(src_indices, pred):
+            if set(gold[src_idx]).intersection(nn) == 0:
+                hits[src_idx] = 1
+
+        return sum(hits.values()) / float(len(hits))
 
     def calc_unsupervised_criterion(self, mapped_src_emb):
         src_wrd_ids = torch.arange(self.cosine_top).type(torch.LongTensor)
@@ -176,14 +223,14 @@ class Evaluator:
         print("Time taken for computation of unsupervised criterion: ", time.time()-start_time)
         return sim.mean()
 
-    def get_precision_k(self, k, xb, mapped_src_emb, v, method='csls', buckets=None, save=False):
+    def get_precision_k(self, k, tgt_emb, mapped_src_emb, v,
+                        method='csls', buckets=None, save=False):
         n = 1500
-        xq = mapped_src_emb[v['valid_src_word_ids']]
         tgt_word_ids = v['valid_tgt_word_ids']
 
         if method == 'nn':
-            _, knn_indices = get_knn_indices(k, xb, xq)
-
+            _, knn_indices = get_knn_indices(
+                k, tgt_emb=tgt_emb, src_emb=mapped_src_emb)
         elif method == 'csls':
             knn_indices = csls(k, xb, xq, self.r_source, self.r_target)
 
@@ -191,8 +238,8 @@ class Evaluator:
             raise "Method not implemented: %s" % method
 
         p, c = _calculate_precision(n, knn_indices, tgt_word_ids, buckets)
-        if save:
-            _save_learnt_dictionary(self.data_dir, v, self.tgt_id2wrd, knn_indices, c)
+        # if save:
+        #     _save_learnt_dictionary(self.data_dir, v, self.tgt_id2wrd, knn_indices, c)
 
         return p
 
@@ -200,9 +247,6 @@ class Evaluator:
         pairs = self.learn_refined_dictionary(mapped_src_emb, tgt_emb)
         return self.do_procrustes(pairs)
 
-    def get_procrustes_mapping(self):
-        pairs = self.process_gold_file()
-        return self.do_procrustes(pairs)
 
     def learn_refined_dictionary(self, mapped_src_emb, tgt_emb):
         bs = 15000
@@ -257,10 +301,10 @@ def _mask(pairs, thresh):
     return selected_pairs
 
 
-def get_knn_indices(k, xb, xq):
-    xb = xb.cpu().numpy()
-    xq = xq.cpu().numpy()
-    d = xq.shape[1]
+def get_knn_indices(k, tgt_emb, src_emb):
+    tgt_emb = (tgt_emb.cpu() if tgt_emb.is_cuda else tgt_emb).numpy()
+    src_emb = (src_emb.cpu() if src_emb.is_cuda else src_emb).numpy()
+    d = src_emb.shape[1]
     if hasattr(faiss, 'StandardGpuResources'):
         res = faiss.StandardGpuResources()
         config = faiss.GpuIndexFlatConfig()
@@ -269,8 +313,8 @@ def get_knn_indices(k, xb, xq):
     else:
         index = faiss.IndexFlatIP(d)
 
-    index.add(xb)
-    distances, knn_indices = index.search(xq, k)
+    index.add(tgt_emb)
+    distances, knn_indices = index.search(src_emb, k)
     return distances, knn_indices
 
 
@@ -310,13 +354,12 @@ def _calc_prec(n, knn_indices, tgt_word_ids, lo=0):
     return (p/n)*100, c
 
 
-def common_csls_step(k, xb, xq):
-    distances, _ = get_knn_indices(k, xb, xq)
-    r = util.to_tensor(np.average(distances, axis=1)).type(torch.FloatTensor)
-    return r
+def calc_csls_discount(k, tgt_emb, mapped_src_emb):
+    distances, _ = get_knn_indices(k, tgt_emb, mapped_src_emb)
+    return torch.from_numpy(np.average(distances, axis=1)).float()
 
 
-def csls(k, xb, xq, r_source, r_target):
+def get_csls_indices(k, xb, xq, r_source, r_target):
     csls = 2 * xq.mm(xb.transpose(0, 1))
     csls.sub_(r_source[:, None] + r_target[None, :])
     knn_indices = csls.topk(k, dim=1)[1]

@@ -5,19 +5,19 @@ import torch.nn.functional as F
 
 
 class Generator(nn.Module):
-    def __init__(self, input_size, output_size, hidden_size, hyperparams=None):
+    def __init__(self, input_size, output_size, hidden_size):
         super(Generator, self).__init__()
-
-        self.context = hyperparams.context
-        assert self.context in [0, 1]
 
         self.map1 = nn.Linear(input_size, output_size, bias=False)
         #nn.init.orthogonal(self.map1.weight)
-        nn.init.eye(self.map1.weight)   # As per the fb implementation initialization
+        nn.init.eye_(self.map1.weight.data)   # As per the fb implementation initialization
 
     def forward(self, x):
         return self.map1(x)
 
+    def load(self, filename):
+        map_location = 'gpu' if self.map1.weight.is_cuda else 'cpu'
+        self.load_state_dict(torch.load(filename, map_location=map_location))
 
 class Discriminator(nn.Module):
     def __init__(self, input_size, hidden_size, output_size, hyperparams):
@@ -47,3 +47,8 @@ class Discriminator(nn.Module):
         x = self.activation1(self.map1(self.drop1(x))) # Input dropout
         x = self.drop2(self.activation2(self.map2(x)))
         return F.sigmoid(self.map3(x)).view(-1)
+
+    # def parameters(self):
+    #     """Returns model parameters that require gradients."""
+    #     return filter(lambda p: not p.requires_grad,
+    #                   super(Discriminator, self).parameters())

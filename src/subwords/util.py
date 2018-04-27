@@ -1,3 +1,4 @@
+from collections import defaultdict
 import numpy as np
 import torch
 import random
@@ -162,7 +163,7 @@ def load_subword_embeddings(filename):
     N = data['seqs'].shape[0]
     D = data['W'].shape[1]
     return {'E': Embedding(data['W']),
-            'F': SubwordEmbedding(D, n_layers=1),
+            'F': SubwordEmbedding(D, n_layers=0),
             'vecs': torch.FloatTensor(np.empty((N, D))),
             'seqs': torch.LongTensor(pad(data['seqs'])),
             'idx2id': data['idx2id'],
@@ -190,7 +191,8 @@ def read_validation_file(filename, src_indexer, tgt_indexer):
       `File format: <src:subword IDs>\t<tgt:subword IDs>`
     - indexer: map subword ID to an index starting from zero
     """
-    src_seqs, tgt_idx = [], []
+    src_idx, src_seqs, tgt_idx = [], [], []
+    w2i = defaultdict(lambda: len(w2i))
     with open(filename) as f:
         for line in f:
             row = line.rstrip('\n').split('\t')
@@ -201,9 +203,10 @@ def read_validation_file(filename, src_indexer, tgt_indexer):
                 tgt_idx_ = tgt_indexer[tgt]
             except KeyError:
                 continue
+            src_idx.append(w2i[row[0]])  # record source word IDs (for aggregation)
             src_seqs.append(src_seqs_)
             tgt_idx.append(tgt_idx_)
-    return np.array(src_seqs), np.array(tgt_idx)
+    return np.array(src_idx), np.array(src_seqs), np.array(tgt_idx)
 
 
 def drop_oov_from_validation_set(src_seqs, tgt_indices, src_n_vocab, tgt_n_vocab):
@@ -256,3 +259,4 @@ def to_variable(tensor, volatile=False, use_cuda=True):
     if torch.cuda.is_available() and use_cuda:
         tensor = tensor.cuda()
     return torch.autograd.Variable(tensor, volatile)
+

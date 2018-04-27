@@ -21,7 +21,8 @@ class SubwordEmbedding(nn.Module):
                 layers.append(nn.Dropout(dropout))
         self.mapping = nn.Sequential(*layers)
         for i in range(1, len(self.mapping), 3):
-            nn.init.eye(self.mapping[i].weight)
+            nn.init.eye_(self.mapping[i].weight.data)
+        self.eval()  # testing mode by default
 
     def forward(self, idx_seqs, emb, mean=True, transform=True):
         """Return word vectors corresponding to sequences of subword IDs."""
