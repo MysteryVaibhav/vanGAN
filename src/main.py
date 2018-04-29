@@ -33,6 +33,7 @@ def parse_arguments():
 
     parser.add_argument("--d_learning_rate", dest="d_learning_rate", type=float, default=d_learning_rate)
     parser.add_argument("--g_learning_rate", dest="g_learning_rate", type=float, default=g_learning_rate)
+    parser.add_argument("--a_learning_rate", dest="a_learning_rate", type=float, default=a_learning_rate)
     parser.add_argument("--num_epochs", dest="num_epochs", type=int, default=num_epochs)
     parser.add_argument("--d_steps", dest="d_steps", type=int, default=d_steps)
     parser.add_argument("--g_steps", dest="g_steps", type=int, default=g_steps)
@@ -65,6 +66,7 @@ def parse_arguments():
     parser.add_argument("--mode", dest="mode", type=int, default=mode)
     parser.add_argument("--model_dir", dest="model_dir", type=str, default=MODEL_DIR)
     parser.add_argument("--model_file_name", dest="model_file_name", type=str, default="generator_weights_best_0.t7")
+    parser.add_argument("--attn_file_name", dest="attn_file_name", type=str, default="a_model_interrupt.t7")
 
     parser.add_argument("--refine_top", dest="refine_top", type=int, default=refine_top)
     parser.add_argument("--cosine_top", dest="cosine_top", type=int, default=cosine_top)
@@ -142,6 +144,8 @@ def main():
             evaluator = Evaluator(params, embs[0].weight.data, embs[1].weight.data)
 
             model_file_path = os.path.join(params.model_dir, params.model_file_name)
+            attn_file_path = os.path.join(params.model_dir, params.attn_file_name)
+
             g = Generator(input_size=params.g_input_size, hidden_size=params.g_hidden_size,
                           output_size=params.g_output_size, hyperparams=get_hyperparams(params, disc=False))
             g.load_state_dict(torch.load(model_file_path, map_location='cpu'))
@@ -152,9 +156,15 @@ def main():
                 except FileNotFoundError:
                     print("k-nn file not found!")
                 knn_emb = util.convert_to_embeddings(knn_list, use_cuda=False)
-                attn = Attention(atype=params.atype)
+                attn = Attention(atype=params.atype, input_size=2*params.g_input_size, hidden_size=params.g_input_size)
+
+                if params.atype == 'mlp':
+                    attn.load_state_dict(torch.load(attn_file_path, map_location='cpu'))
+
                 indices = torch.arange(params.top_frequent_words).type(torch.LongTensor)
                 mapped_src_emb = g(construct_input(knn_emb, indices, embs[0], attn, params.context)).data
+
+
             else:
                 mapped_src_emb = g(embs[0].weight).data
 

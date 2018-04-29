@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 # from properties import *
+import math
 
 
 class Generator(nn.Module):
@@ -59,15 +60,30 @@ class Discriminator(nn.Module):
 
 
 class Attention(nn.Module):
-    def __init__(self, atype='dot'):
+    def __init__(self, atype='dot', **kwargs):
         super(Attention, self).__init__()
         self.atype = atype
         if self.atype == 'dot':
             pass
+        elif self.atype == 'mlp':
+            self.inp_size = kwargs['input_size']
+            self.hidden_size = kwargs['hidden_size']
+            self.map1 = nn.Linear(self.inp_size, self.hidden_size)
+            self.v = nn.Parameter(torch.rand(self.hidden_size))
+            stdv = 1. / math.sqrt(self.hidden_size)
+            self.v.data.normal_(mean=0, std=stdv)
 
     def forward(self, H, h):
         if self.atype == 'dot':
             return torch.matmul(H, h[:, :, None]).squeeze()
+        elif self.atype == 'mlp':
+            B, k, d = H.size()
+            h = h[:, :, None].transpose(1, 2).repeat(1, k, 1) # [B, d] -> [B, k, d]
+            energy = F.tanh(self.map1(torch.cat([H, h], 2)))  # [B*k*2d]->[B*k*d]
+            energy = energy.transpose(2, 1)  # [B*d*k]
+            v = self.v.repeat(B, 1).unsqueeze(1)  # [B*1*d]
+            energy = torch.bmm(v, energy)  # [B*1*k]
+            return energy.squeeze(1)  # [B*T]
         
 
 class RankPredictor(nn.Module):

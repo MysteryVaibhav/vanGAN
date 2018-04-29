@@ -39,6 +39,7 @@ mini_batch_size = 32
 
 d_learning_rate = 0.2
 g_learning_rate = 0.2
+a_learning_rate = 0.2
 num_epochs = 7
 d_steps = 5  # 'k' steps in the original GAN paper. Can put the discriminator on higher training freq than generator
 g_steps = 1

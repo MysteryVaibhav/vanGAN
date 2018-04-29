@@ -76,7 +76,7 @@ class Trainer:
                           output_size=params.g_output_size, hyperparams=get_hyperparams(params, disc=False))
             d = Discriminator(input_size=params.d_input_size, hidden_size=params.d_hidden_size,
                               output_size=params.d_output_size, hyperparams=get_hyperparams(params, disc=True))
-            a = Attention(atype=params.atype)
+            a = Attention(atype=params.atype, input_size=2*params.g_input_size, hidden_size=params.g_input_size)
             r_p = RankPredictor(input_size=params.g_output_size,
                                 output_size=int(np.floor(np.log(params.most_frequent_sampling_size)) + 1),
                                 hidden_size=params.d_hidden_size // 4, leaky_slope=params.leaky_slope)
@@ -95,6 +95,9 @@ class Trainer:
             d_optimizer = optim.SGD(d.parameters(), lr=params.d_learning_rate)
             g_optimizer = optim.SGD(g.parameters(), lr=params.g_learning_rate)
             r_p_optimizer = optim.SGD(g.parameters(), lr=params.g_learning_rate)
+
+            if params.atype == 'mlp':
+                a_optimizer = optim.SGD(a.parameters(), lr=params.g_learning_rate)
 
             if torch.cuda.is_available():
                 # Move the network and the optimizer to the GPU
@@ -161,6 +164,8 @@ class Trainer:
                             else:
                                 g_loss.backward()
                             g_optimizer.step()  # Only optimizes G's parameters
+                            if params.atype == 'mlp':
+                                a_optimizer.step()
                             g_losses.append(g_loss.data.cpu().numpy())
                             
                             if params.use_rank_predictor > 0:
@@ -219,6 +224,8 @@ class Trainer:
                         # Saving generator weights
 
                         torch.save(g.state_dict(), 'generator_weights_' + suffix_str + '_seed_{}_mf_{}_lr_{}_p@1_{:.3f}.t7'.format(seed, epoch, params.g_learning_rate, p_1))
+                        if params.atype == 'mlp':
+                            torch.save(a.state_dict(), 'generator_weights_' + suffix_str + '_seed_{}_mf_{}_lr_{}_p@1_{:.3f}.t7'.format(seed, epoch, params.a_learning_rate, p_1))
 
                 # Save the plot for discriminator accuracy and generator loss
                 fig = plt.figure()
@@ -233,6 +240,8 @@ class Trainer:
                 print("Interrupted.. saving model !!!")
                 torch.save(g.state_dict(), 'g_model_interrupt.t7')
                 torch.save(d.state_dict(), 'd_model_interrupt.t7')
+                if params.atype == 'mlp':
+                    torch.save(a.state_dict(), 'a_model_interrupt.t7')
                 log_file.close()
                 exit()
 
