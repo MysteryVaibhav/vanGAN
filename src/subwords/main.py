@@ -3,7 +3,7 @@ from evaluator import Evaluator
 from model import *
 from properties import *
 from torch.autograd import Variable
-from trainer import Trainer, get_hyperparams, construct_input
+from trainer import Trainer, get_hyperparams
 import argparse
 import copy
 import numpy as np
@@ -47,7 +47,7 @@ def parse_arguments():
     parser.add_argument("--print_every", dest="print_every", type=int, default=print_every)
     parser.add_argument("--lr_decay", dest="lr_decay", type=float, default=lr_decay)
     parser.add_argument("--lr_min", dest="lr_min", type=float, default=lr_min)
-    parser.add_argument("--center_embeddings", dest="center_embeddings", type=int, default=center_embeddings)
+    parser.add_argument("--center_embeddings", action='store_true', help='centering embeddings before training')
 
     parser.add_argument("--dropout_inp", dest="dropout_inp", type=int, default=dropout_inp)
     parser.add_argument("--dropout_hidden", dest="dropout_hidden", type=int, default=dropout_hidden)
@@ -78,6 +78,8 @@ def parse_arguments():
     parser.add_argument("--src_lang", dest="src_lang", type=str, default='en')
     parser.add_argument("--tgt_lang", dest="tgt_lang", type=str, default='es')
     parser.add_argument('--model_file', help='model file of a generator')
+    parser.add_argument('--seed', type=int, default=42, help='random seed')
+    parser.add_argument('--disable-cuda', action='store_true', help='Disable CUDA')
     return parser.parse_args()
 
 
@@ -142,13 +144,7 @@ def main():
             attn = Attention(atype=params.atype)
             indices = torch.arange(params.top_frequent_words).type(torch.LongTensor)
 
-            if params.context == 1:
-                mapped_src_emb = g(construct_input(knn_emb, indices, src_emb, attn)).data
-            else:
-                mapped_src_emb = g(src_emb.weight).data
-
-#             if torch.cuda.is_available():
-#                 g = g.cuda()
+            mapped_src_emb = g(src_emb.weight).data
 
 
 #             print(mapped_src_emb)

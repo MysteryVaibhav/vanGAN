@@ -27,6 +27,7 @@ VOCABSIZE = 10000
 
 class Evaluator:
     def __init__(self, params, src_data, tgt_data):
+        self.params = params
         self.batch_size = params.mini_batch_size
         self.data_dir = params.data_dir
         self.top_ks = params.top_ks
@@ -43,6 +44,7 @@ class Evaluator:
         self.tgt_indexer = tgt_data['word2idx']
 
         self.valid = []
+        print('Eval: {}'.format(params.validation_file))
         self.valid.append(self.setup_validation_data(params.validation_file))
 
         self.cosine_top = params.cosine_top
@@ -58,8 +60,8 @@ class Evaluator:
 
         valid = {}
         valid['valid_src_subword_ids'] = torch.LongTensor(pad(src_seqs))
-        if torch.cuda.is_available():
-            valid['valid_src_subword_ids'] = valid['valid_src_subword_ids'].cuda()
+        # if not self.params.disable_cuda and torch.cuda.is_available():  # TODO
+        #     valid['valid_src_subword_ids'] = valid['valid_src_subword_ids'].cuda()
 
         valid['valid_src_word_ids'] = src_indices
         valid['valid_tgt_word_ids'] = tgt_indices
@@ -116,8 +118,12 @@ class Evaluator:
 
             # Fetch embeddings
             batches = v['valid_src_subword_ids'].split(self.batch_size)
-            mapped_src_emb = torch.cat([g(src_data['F'](batch, src_data['E'])).detach()
-                                        for batch in batches])
+            if g.map1.weight.is_cuda:
+                mapped_src_emb = torch.cat([g(src_data['F'](batch, src_data['E']).cuda()).detach()
+                                            for batch in batches])
+            else:
+                mapped_src_emb = torch.cat([g(src_data['F'](batch, src_data['E'])).detach()
+                                            for batch in batches])
             mapped_src_emb /= mapped_src_emb.norm(2, dim=1).view((-1, 1))
             for m in self.sim_metrics:
                 indices = self.__get_knn(tgt_emb, mapped_src_emb,
@@ -305,13 +311,14 @@ def get_knn_indices(k, tgt_emb, src_emb):
     tgt_emb = (tgt_emb.cpu() if tgt_emb.is_cuda else tgt_emb).numpy()
     src_emb = (src_emb.cpu() if src_emb.is_cuda else src_emb).numpy()
     d = src_emb.shape[1]
-    if hasattr(faiss, 'StandardGpuResources'):
-        res = faiss.StandardGpuResources()
-        config = faiss.GpuIndexFlatConfig()
-        config.device = 0
-        index = faiss.GpuIndexFlatIP(res, d, config)
-    else:
-        index = faiss.IndexFlatIP(d)
+    index = faiss.IndexFlatIP(d)
+    # if hasattr(faiss, 'StandardGpuResources'):
+    #     res = faiss.StandardGpuResources()
+    #     config = faiss.GpuIndexFlatConfig()
+    #     config.device = 0
+    #     index = faiss.GpuIndexFlatIP(res, d, config)
+    # else:
+    #     index = faiss.IndexFlatIP(d)
 
     index.add(tgt_emb)
     distances, knn_indices = index.search(src_emb, k)

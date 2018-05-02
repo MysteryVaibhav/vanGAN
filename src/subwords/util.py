@@ -166,7 +166,7 @@ def load_subword_embeddings(filename):
     seqs = [[v + 1 for v in seq] for seq in data['seqs']]  # 0=PAD
     idx2id = [0] + list(data['idx2id'])  # 0=PAD
     return {'E': Embedding(W),
-            'F': SubwordEmbedding(D, n_layers=1),
+            'F': SubwordEmbedding(D, n_layers=0),
             'vecs': torch.FloatTensor(np.empty((N, D))),
             'seqs': torch.LongTensor(pad(seqs)),
             'idx2id': idx2id,

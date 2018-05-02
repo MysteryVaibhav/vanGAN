@@ -13,7 +13,7 @@ from util import pad
 class Monitor():
     """Monitor a training progress by cosine similarities of correct translations. (debug purpose)"""
     def __init__(self, params, src_data, tgt_data):
-        "docstring"
+        self.params = params
         self.data_dir = params.data_dir
 
         self.src_n_vocab = src_data['E'].size()[0]
@@ -31,15 +31,18 @@ class Monitor():
             src_seqs, tgt_indices, self.src_n_vocab, self.tgt_n_vocab)
         self.src_seqs = torch.LongTensor(pad(src_seqs))
         self.tgt_indices = torch.LongTensor(tgt_indices)
-        if torch.cuda.is_available():
-            self.src_seqs = self.src_seqs.cuda()
-            self.tgt_indices = self.tgt_indices.cuda()
+        # if not self.params.disable_cuda:
+        #     self.src_seqs = self.src_seqs.cuda()
+        #     self.tgt_indices = self.tgt_indices.cuda()
 
     def cosine_similarity(self, g, src_data, tgt_data):
         """Calculate cosine similarities."""
         src_vecs = src_data['F'](Variable(self.src_seqs), src_data['E'])
         tgt_vecs = tgt_data['E'](Variable(self.tgt_indices))
-        sims = F.cosine_similarity(g(src_vecs), tgt_vecs).data
+        if g.map1.weight.is_cuda:
+            sims = F.cosine_similarity(g(src_vecs.cuda()), tgt_vecs.cuda()).data
+        else:
+            sims = F.cosine_similarity(g(src_vecs), tgt_vecs).data
         if sims.is_cuda:
             sims = sims.cpu()
         return sims.numpy()
