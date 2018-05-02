@@ -56,7 +56,7 @@ def main(args):
     if verbose:
         logger.info('W: {}'.format(W.shape))
 
-    path_output = args.path_data + '.subwords.npz'
+    path_output = args.path_data + '.subwords.topn{}.npz'.format(args.topn)
     if verbose:
         logger.info('Write to ' + path_output)
     np.savez(path_output, W=W, seqs=subword_seqs, idx2id=idx2id)

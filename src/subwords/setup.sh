@@ -1,5 +1,10 @@
 DIR_SCRIPT=./scripts
 DIR_DATA=../../data
+N=$1
+
+if [ -z ${N} ]; then
+    N=10000
+fi
 
 for lang in fr en es de it ru zh
 do
@@ -8,13 +13,17 @@ do
         echo $cmd
         eval $cmd
     fi
-    if [ ! -e ${DIR_DATA}/wiki.${lang}.subwords.npz ]; then
-        cmd="python ${DIR_SCRIPT}/extract_subword_embeddings.py ${DIR_DATA}/wiki.${lang} -v"
+    if [ ! -e ${DIR_DATA}/wiki.${lang}.subwords.top${N}.npz ]; then
+        cmd="python ${DIR_SCRIPT}/extract_subword_embeddings.py ${DIR_DATA}/wiki.${lang} --topn ${N} -v"
+        echo $cmd
+        eval $cmd
+    fi
+    if [ ! -e ${DIR_DATA}/wiki.${lang}.words.npz ]; then
+        cmd="python ${DIR_SCRIPT}/extract_word_embeddings.py ${DIR_DATA}/wiki.${lang} --topn 200000 -v"
         echo $cmd
         eval $cmd
     fi
 done
-
 
 for lang1 in en
 do
