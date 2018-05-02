@@ -19,6 +19,7 @@ import evaluator as eval
 import pickle
 import time
 import torch.nn.functional as F
+import math
 
 
 class DiscHyperparameters:
@@ -103,6 +104,7 @@ class Trainer:
                 # Move the network and the optimizer to the GPU
                 g = g.cuda()
                 d = d.cuda()
+                a = a.cuda()
                 r_p = r_p.cuda()
                 loss_fn = loss_fn.cuda()
                 r_p_loss_fn = r_p_loss_fn.cuda()
@@ -299,6 +301,9 @@ def construct_input(knn_emb, indices, src_emb, attn, context=1, use_cuda=False):
     knn = to_cuda(knn, use_cuda)
     H = src_emb(knn)
     h = src_emb(to_variable(indices, use_cuda=use_cuda))
+    alpha = attn(H, h)
+    if context == 2:
+        alpha = alpha/math.sqrt(300)
     p = F.softmax(attn(H, h), dim=1)
     c = torch.matmul(H.transpose(1, 2), p.unsqueeze(2)).squeeze()
 
