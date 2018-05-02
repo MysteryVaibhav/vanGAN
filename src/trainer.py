@@ -77,10 +77,15 @@ class Trainer:
                           output_size=params.g_output_size, hyperparams=get_hyperparams(params, disc=False))
             d = Discriminator(input_size=params.d_input_size, hidden_size=params.d_hidden_size,
                               output_size=params.d_output_size, hyperparams=get_hyperparams(params, disc=True))
-            a = Attention(atype=params.atype, input_size=2*params.g_input_size, hidden_size=params.g_input_size)
+            a = Attention(atype=params.atype, input_size=2*params.g_input_size, hidden_size=params.a_hidden_size)
             r_p = RankPredictor(input_size=params.g_output_size,
                                 output_size=int(np.floor(np.log(params.most_frequent_sampling_size)) + 1),
                                 hidden_size=params.d_hidden_size // 4, leaky_slope=params.leaky_slope)
+
+            if params.initialize_prev_best == 1 and params.context in [0, 2]:
+                prev_best_model_file_path = os.path.join(params.model_dir, params.prev_best_model_fname)
+                g.load_state_dict(torch.load(prev_best_model_file_path, map_location='cpu'))
+                print(g.map1.weight.data)
 
             if params.seed > 0:
                 seed = params.seed
@@ -97,7 +102,7 @@ class Trainer:
             g_optimizer = optim.SGD(g.parameters(), lr=params.g_learning_rate)
             r_p_optimizer = optim.SGD(g.parameters(), lr=params.g_learning_rate)
 
-            if params.atype == 'mlp':
+            if params.atype in ['mlp', 'bilinear']:
                 a_optimizer = optim.SGD(a.parameters(), lr=params.g_learning_rate)
 
             if torch.cuda.is_available():
@@ -166,7 +171,7 @@ class Trainer:
                             else:
                                 g_loss.backward()
                             g_optimizer.step()  # Only optimizes G's parameters
-                            if params.atype == 'mlp':
+                            if params.atype in ['mlp', 'bilinear']:
                                 a_optimizer.step()
                             g_losses.append(g_loss.data.cpu().numpy())
                             
@@ -216,7 +221,7 @@ class Trainer:
                         if params.context > 0:
                             indices = torch.arange(params.top_frequent_words).type(torch.LongTensor)
                             indices = to_cuda(indices, use_cuda=True)
-                            all_precisions = evaluator.get_all_precisions(g(construct_input(self.knn_emb, indices, en, a, context=params.context, use_cuda=True)).data)
+                            all_precisions = evaluator.get_all_precisions(g(construct_input(self.knn_emb, indices, en, a, atype=params.atype, context=params.context, use_cuda=True)).data)
                         else:
                             all_precisions = evaluator.get_all_precisions(g(src_emb.weight).data)
                         #print(json.dumps(all_precisions))
@@ -226,7 +231,7 @@ class Trainer:
                         # Saving generator weights
 
                         torch.save(g.state_dict(), 'generator_weights_' + suffix_str + '_seed_{}_mf_{}_lr_{}_p@1_{:.3f}.t7'.format(seed, epoch, params.g_learning_rate, p_1))
-                        if params.atype == 'mlp':
+                        if params.atype in ['mlp', 'bilinear']:
                             torch.save(a.state_dict(), 'generator_weights_' + suffix_str + '_seed_{}_mf_{}_lr_{}_p@1_{:.3f}.t7'.format(seed, epoch, params.a_learning_rate, p_1))
 
                 # Save the plot for discriminator accuracy and generator loss
@@ -242,7 +247,7 @@ class Trainer:
                 print("Interrupted.. saving model !!!")
                 torch.save(g.state_dict(), 'g_model_interrupt.t7')
                 torch.save(d.state_dict(), 'd_model_interrupt.t7')
-                if params.atype == 'mlp':
+                if params.atype in ['mlp', 'bilinear']:
                     torch.save(a.state_dict(), 'a_model_interrupt.t7')
                 log_file.close()
                 exit()
@@ -263,7 +268,7 @@ class Trainer:
         it_batch = it(to_variable(random_it_indices))
 
         if params.context > 0:
-            fake = g(construct_input(self.knn_emb, random_en_indices, en, a, context=params.context, use_cuda=True))
+            fake = g(construct_input(self.knn_emb, random_en_indices, en, a, atype=params.atype, context=params.context, use_cuda=True))
         else:
             fake = g(en_batch)
         if detach:
@@ -295,16 +300,16 @@ class Trainer:
         return input, output
 
 
-def construct_input(knn_emb, indices, src_emb, attn, context=1, use_cuda=False):
+def construct_input(knn_emb, indices, src_emb, attn, atype, context=1, use_cuda=False, expo=0.75):
     indices = to_cuda(indices, use_cuda)
     knn = knn_emb(indices).type(torch.LongTensor)
     knn = to_cuda(knn, use_cuda)
     H = src_emb(knn)
     h = src_emb(to_variable(indices, use_cuda=use_cuda))
     alpha = attn(H, h)
-    if context == 2:
-        alpha = alpha/math.sqrt(300)
-    p = F.softmax(attn(H, h), dim=1)
+    if context == 2 and atype == 'dot':
+        alpha = alpha ** expo
+    p = F.softmax(alpha, dim=1)
     c = torch.matmul(H.transpose(1, 2), p.unsqueeze(2)).squeeze()
 
     if context == 1:

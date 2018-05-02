@@ -72,6 +72,10 @@ class Attention(nn.Module):
             self.v = nn.Parameter(torch.rand(self.hidden_size))
             stdv = 1. / math.sqrt(self.hidden_size)
             self.v.data.normal_(mean=0, std=stdv)
+        elif self.atype == 'bilinear':
+            self.input_size = int(kwargs['input_size']*0.5)
+            self.map1 = nn.Linear(self.input_size, self.input_size)
+            nn.init.eye(self.map1.weight)
 
     def forward(self, H, h):
         if self.atype == 'dot':
@@ -84,6 +88,9 @@ class Attention(nn.Module):
             v = self.v.repeat(B, 1).unsqueeze(1)  # [B*1*d]
             energy = torch.bmm(v, energy)  # [B*1*k]
             return energy.squeeze(1)  # [B*T]
+        elif self.atype == 'bilinear':
+            h = self.map1(h)
+            return torch.matmul(H, h[:, :, None]).squeeze()
         
 
 class RankPredictor(nn.Module):

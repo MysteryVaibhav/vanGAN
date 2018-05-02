@@ -65,7 +65,7 @@ def parse_arguments():
 
     parser.add_argument("--mode", dest="mode", type=int, default=mode)
     parser.add_argument("--model_dir", dest="model_dir", type=str, default=MODEL_DIR)
-    parser.add_argument("--model_file_name", dest="model_file_name", type=str, default="generator_weights_best_0.t7")
+    parser.add_argument("--model_file_name", dest="model_file_name", type=str, default="g_model_interrupt.t7")
     parser.add_argument("--attn_file_name", dest="attn_file_name", type=str, default="a_model_interrupt.t7")
 
     parser.add_argument("--refine_top", dest="refine_top", type=int, default=refine_top)
@@ -74,10 +74,13 @@ def parse_arguments():
     parser.add_argument("--num_refine", dest="num_refine", type=int, default=1)
     parser.add_argument("--context", dest="context", type=int, default=context)
     parser.add_argument("--atype", dest="atype", type=str, default=atype)
+    parser.add_argument("--a_hidden_size", dest="a_hidden_size", type=str, default=50)
     parser.add_argument("--use_rank_predictor", dest="use_rank_predictor", type=int, default=use_rank_predictor)
 
     parser.add_argument("--src_lang", dest="src_lang", type=str, default='en')
     parser.add_argument("--tgt_lang", dest="tgt_lang", type=str, default='zh')
+    parser.add_argument("--initialize_prev_best", dest="initialize_prev_best", type=str, default=0)
+    parser.add_argument("--prev_best_model_fname", dest="prev_best_model_fname", type=str, default='generator_weights_en_zh_seed_394_mf_50000_lr_0.2_p@1_17.530.t7')
     return parser.parse_args()
 
 
@@ -156,14 +159,13 @@ def main():
                 except FileNotFoundError:
                     print("k-nn file not found!")
                 knn_emb = util.convert_to_embeddings(knn_list, use_cuda=False)
-                attn = Attention(atype=params.atype, input_size=2*params.g_input_size, hidden_size=params.g_input_size)
+                attn = Attention(atype=params.atype, input_size=2*params.g_input_size, hidden_size=params.a_hidden_size)
 
-                if params.atype == 'mlp':
+                if params.atype in ['mlp', 'bilinear']:
                     attn.load_state_dict(torch.load(attn_file_path, map_location='cpu'))
 
                 indices = torch.arange(params.top_frequent_words).type(torch.LongTensor)
-                mapped_src_emb = g(construct_input(knn_emb, indices, embs[0], attn, params.context)).data
-
+                mapped_src_emb = g(construct_input(knn_emb, indices, embs[0], attn, params.atype, context=params.context)).data
 
             else:
                 mapped_src_emb = g(embs[0].weight).data
