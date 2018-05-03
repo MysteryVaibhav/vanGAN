@@ -15,6 +15,9 @@ class Generator(nn.Module):
     def forward(self, x):
         return self.map1(x)
 
+    def save(self, filename):
+        torch.save(self.state_dict(), filename)
+
     def load(self, filename):
         map_location = 'gpu' if self.map1.weight.is_cuda else 'cpu'
         self.load_state_dict(torch.load(filename, map_location=map_location))

@@ -34,6 +34,12 @@ class SubwordEmbedding(nn.Module):
             vecs /= (idx_seqs != PAD).sum(dim=1).float().view((-1, 1))
         return vecs
 
+    def save(self, filename):
+        torch.save(self.state_dict(), filename)
+
+    def load(self, filename):
+        self.load_state_dict(torch.load(filename))
+
 
 class Embedding(nn.Module):
     """Embedding wrapper"""

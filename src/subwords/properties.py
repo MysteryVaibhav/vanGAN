@@ -30,11 +30,13 @@ d_input_size = 300   # cardinality of distributions
 d_hidden_size = 2048   # Discriminator complexity
 g_hidden_size = 300
 d_output_size = 1    # Single dimension for 'real' vs. 'fake'
-mini_batch_size = 32
+mini_batch_size = 128
 
-d_learning_rate = 0.2
-g_learning_rate = 0.2
-num_epochs = 100
+d_learning_rate = 0.01
+g_learning_rate = 0.01
+sw_learning_rate = g_learning_rate / 100
+
+num_epochs = 10
 d_steps = 1
 g_steps = 1
 smoothing = 0.1   # As per what is mentioned in the paper

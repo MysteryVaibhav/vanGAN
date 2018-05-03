@@ -31,8 +31,9 @@ def parse_arguments():
     parser.add_argument("--d_output_size", dest="d_output_size", type=int, default=d_output_size)
     parser.add_argument("--mini_batch_size", dest="mini_batch_size", type=int, default=mini_batch_size)
 
-    parser.add_argument("--d_learning_rate", dest="d_learning_rate", type=float, default=d_learning_rate)
-    parser.add_argument("--g_learning_rate", dest="g_learning_rate", type=float, default=g_learning_rate)
+    parser.add_argument("--d_learning_rate", type=float, default=d_learning_rate)
+    parser.add_argument("--g_learning_rate", type=float, default=g_learning_rate)
+    parser.add_argument("--sw_learning_rate", type=float, default=sw_learning_rate)
     parser.add_argument("--num_epochs", dest="num_epochs", type=int, default=num_epochs)
     parser.add_argument("--d_steps", dest="d_steps", type=int, default=d_steps)
     parser.add_argument("--g_steps", dest="g_steps", type=int, default=g_steps)
@@ -65,7 +66,7 @@ def parse_arguments():
     parser.add_argument("--csls_k", dest="csls_k", type=int, default=csls_k)
 
     parser.add_argument("--mode", dest="mode", type=int, default=mode)
-    parser.add_argument("--model_dir", dest="model_dir", type=str, default=MODEL_DIR)
+    parser.add_argument("--model_dir", type=str, default=MODEL_DIR)
     parser.add_argument("--model_file_name", dest="model_file_name", type=str, default="generator_weights_best_0.t7")
 
     parser.add_argument("--refine_top", dest="refine_top", type=int, default=refine_top)

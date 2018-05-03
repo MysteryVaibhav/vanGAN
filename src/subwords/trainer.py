@@ -1,13 +1,10 @@
 # from properties import *
-from tqdm import trange  # Run `pip install tqdm`
 from datetime import timedelta
-from model import Generator, Discriminator
+from os import path
 from timeit import default_timer as timer
 from torch.autograd import Variable
-from util import *
+from tqdm import trange  # Run `pip install tqdm`
 import copy
-from monitor import Monitor
-from evaluator import Evaluator
 import json
 import matplotlib
 import matplotlib.pyplot as plt
@@ -21,6 +18,12 @@ import torch
 import torch.nn.functional as F
 import torch.optim as optim
 import torch.utils.data
+
+from evaluator import Evaluator
+from model import Generator
+from model import Discriminator
+from monitor import Monitor
+from util import *
 
 
 class DiscHyperparameters:
@@ -54,7 +57,9 @@ class Trainer:
 
     def train(self, src_data, tgt_data):
         params = self.params
-        penalty = 0.1  # penalty on cosine similarity
+        print(params)
+        penalty = 10.0  # penalty on cosine similarity
+        print('Subword penalty {}'.format(penalty))
         # Load data
         if not os.path.exists(params.data_dir):
             raise "Data path doesn't exists: %s" % params.data_dir
@@ -66,14 +71,10 @@ class Trainer:
         evaluator = Evaluator(params, src_data=src_data, tgt_data=tgt_data)
         monitor = Monitor(params, src_data=src_data, tgt_data=tgt_data)
 
-        # if not params.disable_cuda and torch.cuda.is_available():
-        #     print('Use GPU')
-        #     src_data['F'].cuda()
-
         # Initialize subword embedding transformer
         # print('Initializing subword embedding transformer...')
         # src_data['F'].eval()
-        # src_optimizer = optim.Adam(src_data['F'].parameters())
+        # src_optimizer = optim.SGD(src_data['F'].parameters())
         # for _ in trange(128):
         #     indices = np.random.permutation(src_data['seqs'].size(0))
         #     indices = torch.LongTensor(indices)
@@ -90,38 +91,18 @@ class Trainer:
         #         src_optimizer.step()
         # print('Done: final loss = {:.2f}'.format(total_loss))
 
-        src_optimizer = optim.SGD(src_data['F'].parameters(), lr=params.d_learning_rate)
+        src_optimizer = optim.SGD(src_data['F'].parameters(), lr=params.sw_learning_rate, momentum=0.9)
+        print('Src optim: {}'.format(src_optimizer))
         # Loss function
         loss_fn = torch.nn.BCELoss()
 
         # Create models
         g = Generator(input_size=params.g_input_size, hidden_size=params.g_hidden_size,
                       output_size=params.g_output_size)
+
         if self.params.model_file:
             print('Load a model from ' + self.params.model_file)
             g.load(self.params.model_file)
-        else:
-            g_optimizer = optim.Adam(g.parameters())
-            print('Initializing G')
-            for _ in trange(1000):  # at most 1000 iterations
-                prev_loss = loss
-                g_optimizer.zero_grad()
-                batches = src_data['seqs'].split(params.mini_batch_size)
-                mapped_src_emb = torch.cat([g(src_data['F'](batch, src_data['E']).detach())
-                                            for batch in batches])
-                tgt_emb = tgt_data['E'].emb.weight[:10000].detach()
-                loss = F.mse_loss(mapped_src_emb.mean(dim=0), tgt_emb.mean(dim=0))
-                if torch.cuda.is_available():
-                    loss += F.mse_loss(mapped_src_emb.std(dim=0), tgt_emb.std(dim=0)).cuda()
-                else:
-                    loss += F.mse_loss(mapped_src_emb.std(dim=0), tgt_emb.std(dim=0))
-                loss.backward()
-                g_optimizer.step()
-                loss = float(loss)
-                if type(prev_loss) is float and abs(prev_loss - loss) / prev_loss <= tol:
-                    break
-            print('Done: final loss = {}'.format(float(loss)))
-            evaluator.precision(g, src_data, tgt_data)
 
         d = Discriminator(input_size=params.d_input_size, hidden_size=params.d_hidden_size,
                           output_size=params.d_output_size, hyperparams=get_hyperparams(params, disc=True))
@@ -134,17 +115,48 @@ class Trainer:
             g.cuda()
             d.cuda()
             loss_fn = loss_fn.cuda()
-        evaluator.precision(g, src_data, tgt_data)
 
-        # if the relative change of loss values is smaller than tol, stop iteration
-        tol = 1e-3
-        prev_loss, loss = None, None
+        if self.params.model_file is None:
+            print('Initializing G based on distribution')
+            # if the relative change of loss values is smaller than tol, stop iteration
+            topn = 10000
+            tol = 1e-5
+            prev_loss, loss = None, None
+            g_optimizer = optim.SGD(g.parameters(), lr=0.01, momentum=0.9)
+
+            batches = src_data['seqs'][:topn].split(params.mini_batch_size)
+            src_emb = torch.cat([src_data['F'](batch, src_data['E']).detach()
+                                 for batch in batches])
+            tgt_emb = tgt_data['E'].emb.weight[:topn]
+            if not params.disable_cuda and torch.cuda.is_available():
+                src_emb = src_emb.cuda()
+                tgt_emb = tgt_emb.cuda()
+            src_emb = F.normalize(src_emb)
+            tgt_emb = F.normalize(tgt_emb)
+            src_mean = src_emb.mean(dim=0).detach()
+            tgt_mean = tgt_emb.mean(dim=0).detach()
+            # src_std = src_emb.std(dim=0).deatch()
+            # tgt_std = tgt_emb.std(dim=0).deatch()
+
+            for _ in trange(1000):  # at most 1000 iterations
+                prev_loss = loss
+                g_optimizer.zero_grad()
+                mapped_src_mean = g(src_mean)
+                loss = F.mse_loss(mapped_src_mean, tgt_mean)
+                loss.backward()
+                g_optimizer.step()
+                # Orthogonalize
+                self.orthogonalize(g.map1.weight.data)
+                loss = float(loss)
+                if type(prev_loss) is float and abs(prev_loss - loss) / prev_loss <= tol:
+                    break
+            print('Done: final loss = {}'.format(float(loss)))
+        evaluator.precision(g, src_data, tgt_data)
+        sim = monitor.cosine_similarity(g, src_data, tgt_data)
+        print('Cos sim.: {:3f} (+/-{:.3})'.format(sim.mean(), sim.std()))
+
 
         d_acc_epochs, g_loss_epochs = [], []
-
-        # # logs for plotting later
-        # log_file = open("log_src_tgt.txt", "w")     # Being overwritten in every loop, not really required
-        # log_file.write("epoch, dis_loss, dis_acc, g_loss\n")
 
         # Define optimizers
         d_optimizer = optim.SGD(d.parameters(), lr=params.d_learning_rate)
@@ -207,6 +219,12 @@ class Trainer:
                 g_loss_epochs.append(np.asscalar(np.mean(g_losses)))
             print("Epoch {} : Discriminator Loss: {:.5f}, Discriminator Accuracy: {:.5f}, Generator Loss: {:.5f}, Time elapsed {:.2f} mins".format(epoch, np.asscalar(np.mean(d_losses)), hit / total, np.asscalar(np.mean(g_losses)), (timer() - start_time) / 60))
 
+            filename = path.join(params.model_dir, 'g_e{}.pth'.format(epoch))
+            print('Save a generator to ' + filename)
+            g.save(filename)
+            filename = path.join(params.model_dir, 's_e{}.pth'.format(epoch))
+            print('Save a subword transformer to ' + filename)
+            src_data['F'].save(filename)
             if (epoch + 1) % params.print_every == 0:
                 evaluator.precision(g, src_data, tgt_data)
                 sim = monitor.cosine_similarity(g, src_data, tgt_data)
@@ -232,12 +250,14 @@ class Trainer:
         # Generate fake target-side vectors
         src_vecs0 = Variable(src_data['vecs'][src_indices])  # original
         src_vecs = src_data['F'](src_batch, src_data['E'])
+        src_vecs = F.normalize(src_vecs)
         if g.map1.weight.is_cuda:
             fake = g(src_vecs.cuda())
             real = tgt_data['E'](tgt_batch).cuda()
         else:
             fake = g(src_vecs)
             real = tgt_data['E'](tgt_batch)
+        real = F.normalize(real)
         X = torch.cat([fake, real], 0)
         y = torch.zeros(2 * params.mini_batch_size)
         if g.map1.weight.is_cuda:

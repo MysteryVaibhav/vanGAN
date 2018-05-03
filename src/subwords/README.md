@@ -35,6 +35,11 @@ mkdir -p ../../model/wiki.en-ru/subwords && CUDA_VISIBLE_DEVICES=3 OMP_NUM_THREA
 
 
 mkdir -p ../../model/wiki.en-de/subwords && CUDA_VISIBLE_DEVICES=2 OMP_NUM_THREADS=1 python main.py --mode 1 --model_file ../../models/wiki.en-de/generator_weights_en_de_seed_310_mf_75000_lr_0.2_p@1_62.470.t7 --validation_file en-de.5000-6500.subwords --src_file wiki.en.subwords.top75000.npz --tgt_file wiki.de.words.npz --model_dir ../../model/wiki.en-zh/subwords
+
+
+# w/ Distribution-based Initialization
+mkdir -p ../../model/wiki.en-es/subwords/dist_init && CUDA_VISIBLE_DEVICES=2 OMP_NUM_THREADS=1 python main.py --mode 1 --validation_file en-es.5000-6500.subwords --src_file wiki.en.subwords.top75000.npz --tgt_file wiki.es.words.npz --model_dir ../../model/wiki.en-es/subwords/dist_init
+mkdir -p ../../model/wiki.enzh/subwords/dist_init && CUDA_VISIBLE_DEVICES=2 OMP_NUM_THREADS=1 python main.py --mode 1 --validation_file enzh.5000-6500.subwords --src_file wiki.en.subwords.top75000.npz --tgt_file wiki.zh.words.npz --model_dir ../../model/wiki.enzh/subwords/dist_init
 ```
 
 
