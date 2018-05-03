@@ -15,12 +15,12 @@ os.environ['KMP_DUPLICATE_LIB_OK'] = 'TRUE'
 def parse_arguments():
     parser = argparse.ArgumentParser(description='Argument Parser for Unsupervised Bilingual Lexicon Induction using GANs')
     parser.add_argument("--data_dir", dest="data_dir", type=str, default=DATA_DIR)
-    parser.add_argument("--src_file", dest="src_file", type=str, default=EN_WORD_TO_VEC)
-    parser.add_argument("--tgt_file", dest="tgt_file", type=str, default=IT_WORD_TO_VEC)
-    parser.add_argument("--validation_file", dest="validation_file", type=str, default=VALIDATION_FILE)
-    parser.add_argument("--full_file", dest="full_file", type=str, default=FULL_FILE)
-    parser.add_argument("--new_validation_file", dest="new_validation_file", type=str, default=NEW_VAL_FILE)
-    parser.add_argument("--gold_file", dest="gold_file", type=str, default=GOLD_FILE)
+    # parser.add_argument("--src_file", dest="src_file", type=str, default=EN_WORD_TO_VEC)
+    # parser.add_argument("--tgt_file", dest="tgt_file", type=str, default=IT_WORD_TO_VEC)
+    # parser.add_argument("--validation_file", dest="validation_file", type=str, default=VALIDATION_FILE)
+    # parser.add_argument("--full_file", dest="full_file", type=str, default=FULL_FILE)
+    # parser.add_argument("--new_validation_file", dest="new_validation_file", type=str, default=NEW_VAL_FILE)
+    # parser.add_argument("--gold_file", dest="gold_file", type=str, default=GOLD_FILE)
 
     parser.add_argument("--g_input_size", dest="g_input_size", type=int, default=g_input_size)
     parser.add_argument("--g_output_size", dest="g_output_size", type=int, default=g_output_size)
@@ -29,9 +29,11 @@ def parse_arguments():
     parser.add_argument("--g_hidden_size", dest="g_hidden_size", type=int, default=g_hidden_size)
     parser.add_argument("--d_output_size", dest="d_output_size", type=int, default=d_output_size)
     parser.add_argument("--mini_batch_size", dest="mini_batch_size", type=int, default=mini_batch_size)
+    parser.add_argument("--seed", dest="seed", type=int, default=-1)
 
     parser.add_argument("--d_learning_rate", dest="d_learning_rate", type=float, default=d_learning_rate)
     parser.add_argument("--g_learning_rate", dest="g_learning_rate", type=float, default=g_learning_rate)
+    parser.add_argument("--a_learning_rate", dest="a_learning_rate", type=float, default=a_learning_rate)
     parser.add_argument("--num_epochs", dest="num_epochs", type=int, default=num_epochs)
     parser.add_argument("--d_steps", dest="d_steps", type=int, default=d_steps)
     parser.add_argument("--g_steps", dest="g_steps", type=int, default=g_steps)
@@ -63,7 +65,8 @@ def parse_arguments():
 
     parser.add_argument("--mode", dest="mode", type=int, default=mode)
     parser.add_argument("--model_dir", dest="model_dir", type=str, default=MODEL_DIR)
-    parser.add_argument("--model_file_name", dest="model_file_name", type=str, default="generator_weights_best_0.t7")
+    parser.add_argument("--model_file_name", dest="model_file_name", type=str, default="g_model_interrupt.t7")
+    parser.add_argument("--attn_file_name", dest="attn_file_name", type=str, default="a_model_interrupt.t7")
 
     parser.add_argument("--refine_top", dest="refine_top", type=int, default=refine_top)
     parser.add_argument("--cosine_top", dest="cosine_top", type=int, default=cosine_top)
@@ -71,9 +74,13 @@ def parse_arguments():
     parser.add_argument("--num_refine", dest="num_refine", type=int, default=1)
     parser.add_argument("--context", dest="context", type=int, default=context)
     parser.add_argument("--atype", dest="atype", type=str, default=atype)
+    parser.add_argument("--a_hidden_size", dest="a_hidden_size", type=str, default=50)
+    parser.add_argument("--use_rank_predictor", dest="use_rank_predictor", type=int, default=use_rank_predictor)
 
     parser.add_argument("--src_lang", dest="src_lang", type=str, default='en')
     parser.add_argument("--tgt_lang", dest="tgt_lang", type=str, default='zh')
+    parser.add_argument("--initialize_prev_best", dest="initialize_prev_best", type=str, default=0)
+    parser.add_argument("--prev_best_model_fname", dest="prev_best_model_fname", type=str, default='generator_weights_en_zh_seed_394_mf_50000_lr_0.2_p@1_17.530.t7')
     return parser.parse_args()
 
 
@@ -86,61 +93,82 @@ def _get_eval_params(params):
     return params
 
 
+def construct_file_args(params):
+    params = copy.deepcopy(params)
+    src = params.src_lang
+    tgt = params.tgt_lang
+    params.suffix_str = src + '_' + tgt
+    params.src_file = 'wiki.' + src + '.vec'
+    params.tgt_file = 'wiki.' + tgt + '.vec'
+    params.validation_file = src + '-' + tgt + '.5000-6500.txt'
+    params.full_file = src + '-' + tgt + '.txt'
+    params.new_validation_file = src + '-' + tgt + '-new.txt'
+    params.gold_file = src + '-' + tgt + '.0-5000.txt'
+    return params
+
+
 def main():
     params = parse_arguments()
+    params = construct_file_args(params)
+
+    if params.context == 1:
+        params.g_input_size *= 2
 
     if params.mode == 0:
         u = util.Utils(params)
         u.run()
 
     else:
-        print("Reading embedding numpy files...")
+        print("Reading embedding numpy files...", end='')
         use_cuda = False
+        emb_str = ['src', 'tgt']
+        file_ext = '.npy'
+
         if params.mode == 1:
             use_cuda = True
 
-        src = params.src_lang
-        tgt = params.tgt_lang
-
-        suffix_str = src + '_' + tgt
-
-        src_emb_array, tgt_emb_array = util.load_npy_two(params.data_dir, 'src_' + suffix_str + '.npy', 'tgt_' + suffix_str + '.npy')
+        emb_arrays = [util.load_npy_one(params.data_dir, e + '_' + params.suffix_str + file_ext) for e in emb_str]
         print("Done.")
-        print("Converting arrays to embedding layers...")
-        src_emb = util.convert_to_embeddings(src_emb_array, use_cuda)
-        tgt_emb = util.convert_to_embeddings(tgt_emb_array, use_cuda)
+
+        print("Converting arrays to embedding layers...", end='')
+        embs = [util.convert_to_embeddings(erray, use_cuda) for erray in emb_arrays]
         print("Done.")
         
         if params.center_embeddings > 0:
-            util.center_embeddings(src_emb.weight.data)
-            util.center_embeddings(tgt_emb.weight.data)
+            for e in embs:
+                util.center_embeddings(e.weight.data)
         
         if params.mode == 1:
             t = Trainer(params)
-            g = t.train(src_emb, tgt_emb)
+            g = t.train(embs[0], embs[1])
 
         elif params.mode == 2:
             params = _get_eval_params(params)
-            evaluator = Evaluator(params, src_emb.weight.data, tgt_emb.weight.data)
+            evaluator = Evaluator(params, embs[0].weight.data, embs[1].weight.data)
 
             model_file_path = os.path.join(params.model_dir, params.model_file_name)
+            attn_file_path = os.path.join(params.model_dir, params.attn_file_name)
+
             g = Generator(input_size=params.g_input_size, hidden_size=params.g_hidden_size,
                           output_size=params.g_output_size, hyperparams=get_hyperparams(params, disc=False))
             g.load_state_dict(torch.load(model_file_path, map_location='cpu'))
 
-            try:
-                knn_list = pickle.load(open('full_knn_list_' + suffix_str + '.pkl', 'rb'))
-            except FileNotFoundError:
-                print("k-nn file not found!")
-            knn_emb = util.convert_to_embeddings(knn_list, use_cuda=False)
+            if params.context > 0:
+                try:
+                    knn_list = pickle.load(open('full_knn_list_' + params.suffix_str + '.pkl', 'rb'))
+                except FileNotFoundError:
+                    print("k-nn file not found!")
+                knn_emb = util.convert_to_embeddings(knn_list, use_cuda=False)
+                attn = Attention(atype=params.atype, input_size=2*params.g_input_size, hidden_size=params.a_hidden_size)
 
-            attn = Attention(atype=params.atype)
-            indices = torch.arange(params.top_frequent_words).type(torch.LongTensor)
+                if params.atype in ['mlp', 'bilinear']:
+                    attn.load_state_dict(torch.load(attn_file_path, map_location='cpu'))
 
-            if params.context == 1:
-                mapped_src_emb = g(construct_input(knn_emb, indices, src_emb, attn)).data
+                indices = torch.arange(params.top_frequent_words).type(torch.LongTensor)
+                mapped_src_emb = g(construct_input(knn_emb, indices, embs[0], attn, params.atype, context=params.context)).data
+
             else:
-                mapped_src_emb = g(src_emb.weight).data
+                mapped_src_emb = g(embs[0].weight).data
 
 #             if torch.cuda.is_available():
 #                 g = g.cuda()

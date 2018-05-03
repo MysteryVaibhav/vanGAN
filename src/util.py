@@ -19,28 +19,26 @@ class Utils:
         self.new_validation_file = params.new_validation_file
         self.gold_file = params.gold_file
         self.top_frequent_words = params.top_frequent_words
+        self.suffix_str = params.suffix_str
 
     def run(self):
-        src = self.params.src_lang
-        tgt = self.params.tgt_lang
-
-        suffix_str = src + '_' + tgt
-        print("Reading source word embeddings...")
+        suffix_str = self.suffix_str
+        print("Reading source word embeddings...", end='')
         word2vec_src = self.save_word_vectors(self.src_file, save=True, save_file_as='src_' + suffix_str)
         print("Done.")
         print(word2vec_src.shape)
-        print("Reading target word embeddings...")
+        print("Reading target word embeddings...", end='')
         word2vec_tgt = self.save_word_vectors(self.tgt_file, save=True, save_file_as='tgt_' + suffix_str)
         print("Done.")
         print(word2vec_tgt.shape)
-        print("Reading validation file...")
+        print("Reading validation file...", end='')
         self.read_dictionary(self.validation_file, save_file_as="validation_" + suffix_str, save=True)
         print("Reading gold file...")
         self.read_dictionary(self.gold_file, save_file_as='gold_' + suffix_str, save=True)
-        print("Constructing source word-id map...")
+        print("Constructing source word-id map...", end='')
         self.save_word_ids_dicts(self.src_file, save=True, save_file_as='src_ids_' + suffix_str)
         print("Done.")
-        print("Constructing target word-id map...")
+        print("Constructing target word-id map...", end='')
         self.save_word_ids_dicts(self.tgt_file, save=True, save_file_as='tgt_ids_' + suffix_str)
 
         # print("Reading full file...")
@@ -130,8 +128,11 @@ class Utils:
                     f.write(wrd + " " + tgt + "\n")
 
 
-def load_npy_one(data_dir, fname):
-    return np.load(data_dir + fname).item()
+def load_npy_one(data_dir, fname, dict=False):
+    if dict:
+        return np.load(data_dir + fname).item()
+    else:
+        return np.load(data_dir + fname)
 
 
 def load_npy_two(data_dir, src_fname, tgt_fname, dict=False):
@@ -146,7 +147,7 @@ def load_npy_two(data_dir, src_fname, tgt_fname, dict=False):
 
 # Validation set in a dictionary form {src_wrd: [tgt_wrd_1, tgt_wrd_2, ...]}
 def map_dict2ids(data_dir, dict_fname, suffix_str):
-    dict_wrd = load_npy_one(data_dir, dict_fname)
+    dict_wrd = load_npy_one(data_dir, dict_fname, dict=True)
     src_ids, tgt_ids = load_npy_two(data_dir, 'src_ids_' + suffix_str + '.npy', 'tgt_ids_' + suffix_str +'.npy', dict=True)
     dict_ids = {}
     for src_wrd, tgt_list in dict_wrd.items():
@@ -158,8 +159,7 @@ def convert_to_embeddings(emb_array, use_cuda=False):
     emb_tensor = to_tensor(emb_array)
     v, d = emb_tensor.size()
     emb = torch.nn.Embedding(v, d)
-    if torch.cuda.is_available() and use_cuda:
-        emb = emb.cuda()
+    emb = to_cuda(emb, use_cuda)
     emb.weight.data.copy_(emb_tensor)
     emb.weight.requires_grad = False
     return emb
@@ -185,6 +185,11 @@ def to_tensor(numpy_array):
 
 
 def to_variable(tensor, volatile=False, use_cuda=True):
+    tensor = to_cuda(tensor, use_cuda)
+    return torch.autograd.Variable(tensor, volatile)
+
+
+def to_cuda(tensor, use_cuda):
     if torch.cuda.is_available() and use_cuda:
         tensor = tensor.cuda()
-    return torch.autograd.Variable(tensor, volatile)
+    return tensor

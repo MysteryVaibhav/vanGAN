@@ -12,12 +12,12 @@ PLOT_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__
 if not os.path.exists(PLOT_DIR):
     os.makedirs(PLOT_DIR)
 
-EN_WORD_TO_VEC = 'wiki.en.vec'
-IT_WORD_TO_VEC = 'wiki.es.vec'
-VALIDATION_FILE = 'en-es.5000-6500.txt'
-FULL_FILE = 'en-es.txt'
-NEW_VAL_FILE = 'en-es-new.txt'
-GOLD_FILE = 'en-es.0-5000.txt'
+# EN_WORD_TO_VEC = 'wiki.en.vec'
+# IT_WORD_TO_VEC = 'wiki.es.vec'
+# VALIDATION_FILE = 'en-es.5000-6500.txt'
+# FULL_FILE = 'en-es.txt'
+# NEW_VAL_FILE = 'en-es-new.txt'
+# GOLD_FILE = 'en-es.0-5000.txt'
 
 # For Wacky dataset:
 
@@ -39,6 +39,7 @@ mini_batch_size = 32
 
 d_learning_rate = 0.2
 g_learning_rate = 0.2
+a_learning_rate = 0.2
 num_epochs = 7
 d_steps = 5  # 'k' steps in the original GAN paper. Can put the discriminator on higher training freq than generator
 g_steps = 1
@@ -79,3 +80,4 @@ dict_max_top = 10000
 
 context = 0
 atype = 'dot'
+use_rank_predictor = 0

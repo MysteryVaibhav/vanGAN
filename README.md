@@ -67,6 +67,12 @@ Done.
 ```
 ![alt text](https://github.com/MysteryVaibhav/vanGAN/blob/gan/src/d_g.png)
 
+Optional flags:
+- context 0 : default run (original model in MUSE paper)
+- context 1 : attention with context concatenation (atype=dot)
+- context 2 : weighted input (without concatenation) (atype=dot/bilinear/mlp)
+- initialize_prev_best 0/1 : initialize from previous best model (no / yes)
+
 Architecture choices (https://arxiv.org/abs/1710.04087):
 ------------------------------
 - Discriminator:
