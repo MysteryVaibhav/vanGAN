@@ -1,5 +1,6 @@
 import util
 import torch
+import torch.nn.functional as F
 import numpy as np
 import json
 import platform
@@ -36,6 +37,7 @@ class Evaluator:
 
         self.tgt_emb = tgt_emb
         self.src_emb = src_emb
+        self.W = None
 
         self.valid = []
         self.valid.append(self.prepare_val(self.validation_file))
@@ -46,10 +48,14 @@ class Evaluator:
 
         self.r_source = None
         self.r_target = None
-        self.r_target = None
         self.use_cuda = use_cuda
         self.cosine_top = params.cosine_top
         self.refine_top = params.refine_top
+        self.use_frobenius = params.use_frobenius
+        self.use_spectral = params.use_spectral
+        self.use_full = params.use_full
+        self.eps = params.eps
+        self.alpha = params.alpha
 
     def prepare_val(self, validation_file):
         valid = {}
@@ -95,7 +101,7 @@ class Evaluator:
 
         for it, v in enumerate(self.valid):
             v['valid_src_word_ids'] = util.to_cuda(v['valid_src_word_ids'], self.use_cuda)
-            
+
             if it == 0:
                 key = 'validation'
             else:
@@ -109,7 +115,7 @@ class Evaluator:
                     mapped_src_emb = adv_mapped_src_emb.clone()
                 else:
                     raise 'Model not implemented: %s' % mod
-                    
+
                 all_precisions[key][mod] = {}
 
                 for r in self.refine:
@@ -118,14 +124,14 @@ class Evaluator:
                             continue
                         else:
                             mapped_src_emb = refined_mapped_src_emb.clone()
-                    
+
                     mapped_src_emb = mapped_src_emb / mapped_src_emb.norm(2, 1)[:, None]
-                    
+
                     if 'csls' in self.methods:
                         self.r_source = common_csls_step(self.csls_k, tgt_emb, mapped_src_emb[v['valid_src_word_ids']])
                         start_time = time.time()
                         self.r_target = common_csls_step(self.csls_k, mapped_src_emb, tgt_emb)
-                        
+
                     all_precisions[key][mod][r] = {}
 
                     for m in self.methods:
@@ -136,9 +142,11 @@ class Evaluator:
                                 buckets = 5
                                 save = True
 
-                            p = self.get_precision_k(k, tgt_emb, mapped_src_emb, v, method=m, buckets=buckets, save=save)
+                            p = self.get_precision_k(k, tgt_emb, mapped_src_emb, v, method=m, buckets=buckets,
+                                                     save=save)
                             if not save:
-                                print("key: %s, model: %s, refine: %s, method: %s, k: %d, prec: %f" % (key, mod, r, m, k, p))
+                                print("key: %s, model: %s, refine: %s, method: %s, k: %d, prec: %f" % (
+                                key, mod, r, m, k, p))
                             else:
                                 print("key: %s, model: %s, refine: %s, method: %s, k: %d" % (key, mod, r, m, k))
                                 print("precision: ", p)
@@ -167,7 +175,7 @@ class Evaluator:
         knn_indices = knn_indices.view(knn_indices.numel())
         sim = xq.mm(self.tgt_emb[knn_indices].transpose(0, 1))
         print(sim.mean())
-        print("Time taken for computation of unsupervised criterion: ", time.time()-start_time)
+        print("Time taken for computation of unsupervised criterion: ", time.time() - start_time)
         return sim.mean()
 
     def get_precision_k(self, k, xb, mapped_src_emb, v, method='csls', buckets=None, save=False):
@@ -196,6 +204,11 @@ class Evaluator:
 
     def get_procrustes_mapping(self):
         pairs = self.process_gold_file()
+        if self.use_frobenius == 1 or self.use_spectral == 1:
+            if self.use_frobenius == 1 and self.use_spectral == 1:
+                print("Can't have two projection criterion... Exiting !!")
+                exit()
+            return self.do_csls(pairs)
         return self.do_procrustes(pairs)
 
     def learn_refined_dictionary(self, mapped_src_emb, tgt_emb):
@@ -223,9 +236,91 @@ class Evaluator:
         return pairs
 
     def do_procrustes(self, pairs):
-        W =_procrustes(pairs, self.src_emb, self.tgt_emb)
+        W = _procrustes(pairs, self.src_emb, self.tgt_emb)
         mapped_src_emb = W.mm(self.src_emb.transpose(0, 1)).transpose(0, 1)
         return mapped_src_emb
+
+    def do_csls(self, pairs):
+        tgt_emb = self.tgt_emb / self.tgt_emb.norm(2, 1)[:, None]
+        src_emb = self.src_emb / self.src_emb.norm(2, 1)[:, None]
+        W = self.predicate_subgradient_descent(pairs, src_emb, tgt_emb)
+        mapped_src_emb = W.mm(self.src_emb.transpose(0, 1)).transpose(0, 1)
+        return mapped_src_emb
+
+    def predicate_subgradient_descent(self, pairs, src_emb, tgt_emb):
+        X = src_emb[pairs[:, 0]].transpose(0, 1)
+        Y = tgt_emb[pairs[:, 1]].transpose(0, 1)
+        X_full = src_emb.transpose(0, 1)
+        Y_full = tgt_emb.transpose(0, 1)
+        mapped_src_emb_full = self.W.matmul(X_full).transpose(0, 1)
+        mapped_src_emb_full = mapped_src_emb_full / mapped_src_emb_full.norm(2, 1)[:, None]
+        mapped_src_emb = mapped_src_emb_full[pairs[:, 0]]
+
+        if self.use_full:
+            r_source = common_csls_step(self.csls_k, Y_full.transpose(0, 1), mapped_src_emb)
+        else:
+            r_source = common_csls_step(self.csls_k, Y.transpose(0, 1), mapped_src_emb)
+        if self.use_full:
+            r_target = common_csls_step(self.csls_k, mapped_src_emb_full, Y.transpose(0, 1))
+        else:
+            r_target = common_csls_step(self.csls_k, mapped_src_emb, Y.transpose(0, 1))
+
+        eps = self.eps
+        change_in_loss = 10000
+        prev_loss = 10000
+        W = self.W.transpose(0, 1)
+        iter = 1
+        print("Starting predicate sub-gradient descent...")
+        while change_in_loss > eps:
+            loss = self.get_csls_loss(Y.transpose(0, 1), mapped_src_emb[pairs[:, 0]], r_source, r_target)
+            sub_gradient = self.get_sub_gradient(X, X_full, Y, Y_full, mapped_src_emb, mapped_src_emb_full)
+            alpha = self.alpha / np.sqrt(iter)
+            if self.use_frobenius == 1:
+                W = F.normalize(W - alpha * sub_gradient, p=2, dim=1)
+            change_in_loss = abs(loss - prev_loss)
+            # Update the values as per new W
+            mapped_src_emb_full = W.transpose(0, 1).matmul(X_full).transpose(0, 1)
+            mapped_src_emb_full = mapped_src_emb_full / mapped_src_emb_full.norm(2, 1)[:, None]
+            mapped_src_emb = mapped_src_emb_full[pairs[:, 0]]
+            print("Iter {}: Prev_loss {:.5f}, Curr_loss {:.5f}, Change_in_loss {:.5f}".format(iter, prev_loss, loss, change_in_loss))
+            iter += 1
+            prev_loss = loss
+        print("Stopping predicate sub-gradient descent.")
+        return W.transpose(0, 1)
+
+    @staticmethod
+    def get_csls_loss(xb, xq, r_source, r_target):
+        csls = -2 * xq.mm(xb.transpose(0, 1))
+        csls.add_(r_source[:, None] + r_target[None, :])
+        return torch.trace(csls) / csls.size(0)
+
+    def get_sub_gradient(self, X, X_full, Y, Y_full, mapped_src_emb, mapped_src_emb_full):
+        f_t = -2 * X.matmul(Y.transpose(0, 1))
+
+        if self.use_full:
+            _, indices = get_knn_indices(self.csls_k, Y_full.transpose(0, 1), mapped_src_emb)
+            _Y = self.get_mean_emb(indices, Y_full)
+        else:
+            _, indices = get_knn_indices(self.csls_k, Y.transpose(0, 1), mapped_src_emb)
+            _Y = self.get_mean_emb(indices, Y)
+        s_t = X.matmul(_Y.transpose(0, 1))
+
+        if self.use_full:
+            _, indices = get_knn_indices(self.csls_k, mapped_src_emb_full, Y.transpose(0, 1))
+            _X = self.get_mean_emb(indices, X_full)
+        else:
+            _, indices = get_knn_indices(self.csls_k, mapped_src_emb, Y.transpose(0, 1))
+            _X = self.get_mean_emb(indices, X)
+        t_t = _X.matmul(Y.transpose(0, 1))
+
+        return (f_t + s_t + t_t) / X.size(1)
+
+    @staticmethod
+    def get_mean_emb(indices, mat):
+        mat = mat.transpose(0, 1)
+        r, c = indices.shape
+        idx = np.reshape(indices, (-1))
+        return mat[torch.LongTensor(idx)].contiguous().view(r, c, -1).sum(1).transpose(0, 1)
 
     def process_gold_file(self):
         gold_dict_ids = util.map_dict2ids(self.data_dir, self.gold_file, self.suffix_str)
@@ -271,7 +366,7 @@ def get_knn_indices(k, xb, xq):
 def _procrustes(pairs, src_emb, tgt_emb):
     X = np.transpose(src_emb[pairs[:, 0]].cpu().numpy())
     Y = np.transpose(tgt_emb[pairs[:, 1]].cpu().numpy())
-#     U, Sigma, VT = randomized_svd(np.matmul(Y, np.transpose(X)), n_components=np.shape(X)[0])
+    #     U, Sigma, VT = randomized_svd(np.matmul(Y, np.transpose(X)), n_components=np.shape(X)[0])
     U, Sigma, VT = scipy.linalg.svd(np.matmul(Y, np.transpose(X)), full_matrices=True)
     W = util.to_tensor(np.matmul(U, VT)).type(torch.FloatTensor)
     return W
@@ -280,7 +375,7 @@ def _procrustes(pairs, src_emb, tgt_emb):
 def _calculate_precision(n, knn_indices, tgt_word_ids, buckets=None):
     p, c = _calc_prec(n, knn_indices, tgt_word_ids)
     if buckets is not None:
-        width = int(n/buckets)
+        width = int(n / buckets)
         prec_list = [round(p, 2)]
         for i in range(0, n, width):
             lo = i
@@ -301,7 +396,7 @@ def _calc_prec(n, knn_indices, tgt_word_ids, lo=0):
             c.append(1)
         else:
             c.append(0)
-    return (p/n)*100, c
+    return (p / n) * 100, c
 
 
 def common_csls_step(k, xb, xq):
@@ -330,7 +425,7 @@ def _save_learnt_dictionary(data_dir, v, tgt_id2wrd, knn_indices, correct_or_not
     src_wrd_ids_incorrect = {}
 
     for i, w in enumerate(src_wrds):
-        bucket = int(i/300)
+        bucket = int(i / 300)
         if correct_or_not[i] == 0:
             learnt_dict = learnt_dict_incorrect
             bucket_list_incorrect[w] = bucket
@@ -361,6 +456,7 @@ def _write_csv(src_wrd_ids, bucket_list, data_dir, fname, learnt_dict):
         f.write("Bucket, Word ID, Source Word, True Translation, Predicted Translation\n")
         for src_wrd in learnt_dict.keys():
             true_and_predicted = learnt_dict[src_wrd]
-            f.write(str(bucket_list[src_wrd]) + ", " + str(src_wrd_ids[src_wrd]) + ", " + src_wrd + ", " + str(true_and_predicted['true']).replace(",", "|") + ", " + str(true_and_predicted[
-                                                                                                                                                                             'predicted']).replace(",",
-                                                                                                                                                                                        "|") + "\n")
+            f.write(str(bucket_list[src_wrd]) + ", " + str(src_wrd_ids[src_wrd]) + ", " + src_wrd + ", " + str(
+                true_and_predicted['true']).replace(",", "|") + ", " + str(true_and_predicted[
+                                                                               'predicted']).replace(",",
+                                                                                                     "|") + "\n")
