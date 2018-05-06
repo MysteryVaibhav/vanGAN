@@ -56,6 +56,7 @@ class Evaluator:
         self.use_full = params.use_full
         self.eps = params.eps
         self.alpha = params.alpha
+        self.max_iter = params.max_iter
 
     def prepare_val(self, validation_file):
         valid = {}
@@ -200,6 +201,11 @@ class Evaluator:
 
     def get_refined_mapping(self, mapped_src_emb, tgt_emb):
         pairs = self.learn_refined_dictionary(mapped_src_emb, tgt_emb)
+#         if self.use_frobenius == 1 or self.use_spectral == 1:
+#             if self.use_frobenius == 1 and self.use_spectral == 1:
+#                 print("Can't have two projection criterion... Exiting !!")
+#                 exit()
+#             return self.do_csls(pairs)
         return self.do_procrustes(pairs)
 
     def get_procrustes_mapping(self):
@@ -270,11 +276,12 @@ class Evaluator:
         prev_loss = 10000
         W = self.W.transpose(0, 1)
         iter = 1
+        alpha = self.alpha #/ np.sqrt(iter)
+        best_W = W
         print("Starting predicate sub-gradient descent...")
-        while change_in_loss > eps:
+        while change_in_loss > eps and iter <= self.max_iter:
             loss = self.get_csls_loss(Y.transpose(0, 1), mapped_src_emb[pairs[:, 0]], r_source, r_target)
             sub_gradient = self.get_sub_gradient(X, X_full, Y, Y_full, mapped_src_emb, mapped_src_emb_full)
-            alpha = self.alpha / np.sqrt(iter)
             if self.use_frobenius == 1:
                 W = F.normalize(W - alpha * sub_gradient, p=2, dim=1)
             change_in_loss = abs(loss - prev_loss)
@@ -290,12 +297,16 @@ class Evaluator:
                 r_target = common_csls_step(self.csls_k, mapped_src_emb_full, Y.transpose(0, 1))
             else:
                 r_target = common_csls_step(self.csls_k, mapped_src_emb, Y.transpose(0, 1))
-            
-            print("Iter {}: Prev_loss {:.5f}, Curr_loss {:.5f}, Change_in_loss {:.5f}".format(iter, prev_loss, loss, change_in_loss))
+            if prev_loss > loss:
+                print("Iter {}: Prev_loss {:.5f}, Curr_loss {:.5f}, Change_in_loss {:.5f}".format(iter, prev_loss, loss, change_in_loss))
+                prev_loss = loss
+                best_W = W
+            else:
+                print("Iter {}: Prev_loss {:.5f}, Curr_loss {:.5f}, Change_in_loss {:.5f}, reducing alpha {} -> {}".format(iter, prev_loss, loss, change_in_loss, alpha, alpha/2))
+                alpha /= 2
             iter += 1
-            prev_loss = loss
         print("Stopping predicate sub-gradient descent.")
-        return W.transpose(0, 1)
+        return best_W.transpose(0, 1)
 
     @staticmethod
     def get_csls_loss(xb, xq, r_source, r_target):
