@@ -62,6 +62,11 @@ def parse_arguments():
     parser.add_argument("--top_frequent_words", dest="top_frequent_words", type=int, default=top_frequent_words)
 
     parser.add_argument("--csls_k", dest="csls_k", type=int, default=csls_k)
+    parser.add_argument("--use_frobenius", dest="use_frobenius", type=int, default=0)
+    parser.add_argument("--use_spectral", dest="use_spectral", type=int, default=0)
+    parser.add_argument("--use_full", dest="use_full", type=int, default=0)
+    parser.add_argument("--eps", dest="eps", type=float, default=1e-3)
+    parser.add_argument("--alpha", dest="alpha", type=float, default=1)
 
     parser.add_argument("--mode", dest="mode", type=int, default=mode)
     parser.add_argument("--model_dir", dest="model_dir", type=str, default=MODEL_DIR)
@@ -78,7 +83,7 @@ def parse_arguments():
     parser.add_argument("--use_rank_predictor", dest="use_rank_predictor", type=int, default=use_rank_predictor)
 
     parser.add_argument("--src_lang", dest="src_lang", type=str, default='en')
-    parser.add_argument("--tgt_lang", dest="tgt_lang", type=str, default='zh')
+    parser.add_argument("--tgt_lang", dest="tgt_lang", type=str, default='es')
     parser.add_argument("--initialize_prev_best", dest="initialize_prev_best", type=str, default=0)
     parser.add_argument("--prev_best_model_fname", dest="prev_best_model_fname", type=str, default='generator_weights_en_zh_seed_394_mf_50000_lr_0.2_p@1_17.530.t7')
     return parser.parse_args()
@@ -152,7 +157,7 @@ def main():
             g = Generator(input_size=params.g_input_size, hidden_size=params.g_hidden_size,
                           output_size=params.g_output_size, hyperparams=get_hyperparams(params, disc=False))
             g.load_state_dict(torch.load(model_file_path, map_location='cpu'))
-
+            evaluator.W = g.map1.weight.data
             if params.context > 0:
                 try:
                     knn_list = pickle.load(open('full_knn_list_' + params.suffix_str + '.pkl', 'rb'))
