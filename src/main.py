@@ -64,8 +64,8 @@ def parse_arguments():
     parser.add_argument("--csls_k", dest="csls_k", type=int, default=csls_k)
     parser.add_argument("--use_frobenius", dest="use_frobenius", type=int, default=0)
     parser.add_argument("--use_spectral", dest="use_spectral", type=int, default=0)
-    parser.add_argument("--use_full", dest="use_full", type=int, default=0)
-    parser.add_argument("--eps", dest="eps", type=float, default=1e-3)
+    parser.add_argument("--use_full", dest="use_full", type=int, default=1)
+    parser.add_argument("--eps", dest="eps", type=float, default=1e-4)
     parser.add_argument("--alpha", dest="alpha", type=float, default=1)
 
     parser.add_argument("--mode", dest="mode", type=int, default=mode)

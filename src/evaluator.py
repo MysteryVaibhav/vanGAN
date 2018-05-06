@@ -282,6 +282,15 @@ class Evaluator:
             mapped_src_emb_full = W.transpose(0, 1).matmul(X_full).transpose(0, 1)
             mapped_src_emb_full = mapped_src_emb_full / mapped_src_emb_full.norm(2, 1)[:, None]
             mapped_src_emb = mapped_src_emb_full[pairs[:, 0]]
+            if self.use_full:
+                r_source = common_csls_step(self.csls_k, Y_full.transpose(0, 1), mapped_src_emb)
+            else:
+                r_source = common_csls_step(self.csls_k, Y.transpose(0, 1), mapped_src_emb)
+            if self.use_full:
+                r_target = common_csls_step(self.csls_k, mapped_src_emb_full, Y.transpose(0, 1))
+            else:
+                r_target = common_csls_step(self.csls_k, mapped_src_emb, Y.transpose(0, 1))
+            
             print("Iter {}: Prev_loss {:.5f}, Curr_loss {:.5f}, Change_in_loss {:.5f}".format(iter, prev_loss, loss, change_in_loss))
             iter += 1
             prev_loss = loss
@@ -320,7 +329,7 @@ class Evaluator:
         mat = mat.transpose(0, 1)
         r, c = indices.shape
         idx = np.reshape(indices, (-1))
-        return mat[torch.LongTensor(idx)].contiguous().view(r, c, -1).sum(1).transpose(0, 1)
+        return mat[torch.LongTensor(idx)].contiguous().view(r, c, -1).sum(1).transpose(0, 1) / c
 
     def process_gold_file(self):
         gold_dict_ids = util.map_dict2ids(self.data_dir, self.gold_file, self.suffix_str)
