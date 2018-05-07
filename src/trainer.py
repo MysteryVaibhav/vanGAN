@@ -87,6 +87,9 @@ class Trainer:
                 g.load_state_dict(torch.load(prev_best_model_file_path, map_location='cpu'))
                 print(g.map1.weight.data)
 
+            for p in g.parameters():
+                print(p)
+
             if params.seed > 0:
                 seed = params.seed
             else:

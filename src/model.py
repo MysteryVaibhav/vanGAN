@@ -17,16 +17,22 @@ class Generator(nn.Module):
             #nn.init.orthogonal(self.map1.weight)
             nn.init.eye(self.map1.weight)   # As per the fb implementation initialization
         elif self.context == 1:
-            leaky_slope = hyperparams.leaky_slope
-            self.map1 = nn.Linear(input_size, hidden_size)
-            self.activation1 = nn.LeakyReLU(leaky_slope)
-            self.map2 = nn.Linear(hidden_size, output_size, bias=False)
+            # leaky_slope = hyperparams.leaky_slope
+            # self.map1 = nn.Linear(input_size, hidden_size)
+            # self.activation1 = nn.LeakyReLU(leaky_slope)
+            # self.map2 = nn.Linear(hidden_size, output_size, bias=False)
+            print(input_size)
+            print(output_size)
+            self.map1 = nn.Linear(input_size, output_size, bias=False)
+            self.map1.data = torch.cat([torch.eye(output_size), torch.zeros(output_size, output_size)], 0)
+            print(self.map1.data)
 
     def forward(self, x):
         if self.context == 0 or self.context == 2:
             return self.map1(x)
         else:
-            return self.map2(self.activation1(self.map1(x)))
+            # return self.map2(self.activation1(self.map1(x)))
+            return self.map1(x)
 
 
 class Discriminator(nn.Module):
