@@ -266,6 +266,7 @@ class Evaluator:
             r_source = common_csls_step(self.csls_k, Y_full.transpose(0, 1), mapped_src_emb)
         else:
             r_source = common_csls_step(self.csls_k, Y.transpose(0, 1), mapped_src_emb)
+
         if self.use_full:
             r_target = common_csls_step(self.csls_k, mapped_src_emb_full, Y.transpose(0, 1))
         else:
@@ -276,27 +277,33 @@ class Evaluator:
         prev_loss = 10000
         W = self.W.transpose(0, 1)
         iter = 1
-        alpha = self.alpha #/ np.sqrt(iter)
+        alpha = np.random.randint(1, 50)
+        print("Alpha: ", alpha)
         best_W = W
         print("Starting predicate sub-gradient descent...")
+
         while change_in_loss > eps and iter <= self.max_iter:
-            loss = self.get_csls_loss(Y.transpose(0, 1), mapped_src_emb[pairs[:, 0]], r_source, r_target)
+            loss = self.get_csls_loss(Y.transpose(0, 1), mapped_src_emb, r_source, r_target)
             sub_gradient = self.get_sub_gradient(X, X_full, Y, Y_full, mapped_src_emb, mapped_src_emb_full)
             if self.use_frobenius == 1:
-                W = F.normalize(W - alpha * sub_gradient, p=2, dim=1)
+                W_temp = W - alpha * sub_gradient
+                W = W_temp/torch.norm(W_temp)
             change_in_loss = abs(loss - prev_loss)
             # Update the values as per new W
             mapped_src_emb_full = W.transpose(0, 1).matmul(X_full).transpose(0, 1)
             mapped_src_emb_full = mapped_src_emb_full / mapped_src_emb_full.norm(2, 1)[:, None]
             mapped_src_emb = mapped_src_emb_full[pairs[:, 0]]
+
             if self.use_full:
                 r_source = common_csls_step(self.csls_k, Y_full.transpose(0, 1), mapped_src_emb)
             else:
                 r_source = common_csls_step(self.csls_k, Y.transpose(0, 1), mapped_src_emb)
+
             if self.use_full:
                 r_target = common_csls_step(self.csls_k, mapped_src_emb_full, Y.transpose(0, 1))
             else:
                 r_target = common_csls_step(self.csls_k, mapped_src_emb, Y.transpose(0, 1))
+
             if prev_loss > loss:
                 print("Iter {}: Prev_loss {:.5f}, Curr_loss {:.5f}, Change_in_loss {:.5f}".format(iter, prev_loss, loss, change_in_loss))
                 prev_loss = loss
@@ -306,7 +313,7 @@ class Evaluator:
                 alpha /= 2
             iter += 1
         print("Stopping predicate sub-gradient descent.")
-        return best_W.transpose(0, 1)
+        return best_W
 
     @staticmethod
     def get_csls_loss(xb, xq, r_source, r_target):
