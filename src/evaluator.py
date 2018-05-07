@@ -277,7 +277,7 @@ class Evaluator:
         prev_loss = 10000
         W = self.W.transpose(0, 1)
         iter = 1
-        alpha = np.random.randint(1, 50)
+        alpha = 50
         print("Alpha: ", alpha)
         best_W = W
         print("Starting predicate sub-gradient descent...")
@@ -306,14 +306,14 @@ class Evaluator:
 
             if prev_loss > loss:
                 print("Iter {}: Prev_loss {:.5f}, Curr_loss {:.5f}, Change_in_loss {:.5f}".format(iter, prev_loss, loss, change_in_loss))
-                prev_loss = loss
                 best_W = W
             else:
                 print("Iter {}: Prev_loss {:.5f}, Curr_loss {:.5f}, Change_in_loss {:.5f}, reducing alpha {} -> {}".format(iter, prev_loss, loss, change_in_loss, alpha, alpha/2))
                 alpha /= 2
+            prev_loss = loss
             iter += 1
         print("Stopping predicate sub-gradient descent.")
-        return best_W
+        return best_W.transpose(0, 1)
 
     @staticmethod
     def get_csls_loss(xb, xq, r_source, r_target):
