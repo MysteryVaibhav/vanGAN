@@ -12,7 +12,7 @@ class Generator(nn.Module):
         self.context = hyperparams.context
         assert self.context in [0, 1, 2]
         
-        self.non_linear = 0
+        self.non_linear = hyperparams.non_linear
 
         if self.context == 0 or self.context == 2:
             self.map1 = nn.Linear(input_size, output_size, bias=False)
@@ -20,11 +20,17 @@ class Generator(nn.Module):
             nn.init.eye(self.map1.weight)   # As per the fb implementation initialization
         elif self.context == 1:
             self.map1 = nn.Linear(input_size, output_size, bias=False)
-            self.map1.data = torch.cat([torch.eye(output_size), torch.zeros(output_size, output_size)], 0)
+            self.map1.weight.data = torch.cat([torch.eye(output_size), torch.zeros(output_size, output_size)], 0).transpose(0, 1)
+
+            # print(input_size)
+            # print(output_size)
+            # print(self.map1.weight.data)
+            # print(self.map1.data)
+
             if self.non_linear == 1:
                 leaky_slope = hyperparams.leaky_slope
                 self.activation1 = nn.LeakyReLU(leaky_slope)
-                self.map2 = nn.Linear(300, 300, bias=False)
+                self.map2 = nn.Linear(300, 300, bias=True)
 
     def forward(self, x):
         if self.context == 0 or self.context == 2:
@@ -73,15 +79,15 @@ class Attention(nn.Module):
         if self.atype == 'dot':
             pass
         elif self.atype == 'mlp':
-            self.inp_size = kwargs['input_size']
-            self.hidden_size = kwargs['hidden_size']
+            self.inp_size = 600
+            self.hidden_size = 50
             self.map1 = nn.Linear(self.inp_size, self.hidden_size)
             self.v = nn.Parameter(torch.rand(self.hidden_size))
             stdv = 1. / math.sqrt(self.hidden_size)
             self.v.data.normal_(mean=0, std=stdv)
         elif self.atype == 'bilinear':
-            self.input_size = int(kwargs['input_size']*0.5)
-            self.map1 = nn.Linear(self.input_size, self.input_size)
+            self.input_size = 300
+            self.map1 = nn.Linear(self.input_size, self.input_size, bias=False)
             nn.init.eye(self.map1.weight)
 
     def forward(self, H, h):

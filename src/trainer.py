@@ -36,6 +36,7 @@ class GenHyperparameters:
     def __init__(self, params):
         self.leaky_slope = params.leaky_slope
         self.context = params.context
+        self.non_linear = params.non_linear
 
 
 class Trainer:
@@ -102,6 +103,15 @@ class Trainer:
             g_optimizer = optim.SGD(g.parameters(), lr=params.g_learning_rate)
             r_p_optimizer = optim.SGD(g.parameters(), lr=params.g_learning_rate)
 
+            # Regularization loss
+            reg_loss = 0
+            for i, p in enumerate(g.parameters()):
+                if i > 0:
+                    break
+                pred = p.transpose(0, 1)[300:, :]
+                reg_loss += pred.norm(2)
+            factor = 1e-2
+
             if params.atype in ['mlp', 'bilinear']:
                 a_optimizer = optim.SGD(a.parameters(), lr=params.g_learning_rate)
 
@@ -124,6 +134,7 @@ class Trainer:
 
             try:
                 for epoch in range(params.num_epochs):
+
                     d_losses = []
                     g_losses = []
                     rank_losses = []
@@ -132,6 +143,9 @@ class Trainer:
                     start_time = timer()
 
                     for mini_batch in range(0, params.iters_in_epoch // params.mini_batch_size):
+                        # W_orig = g.map1.weight.data
+                        # print(W_orig)
+
                         for d_index in range(params.d_steps):
                             d_optimizer.zero_grad()  # Reset the gradients
                             d.train()
@@ -166,10 +180,13 @@ class Trainer:
                             
                             pred = d(input)
                             g_loss = loss_fn(pred, 1 - output)
+
+                            g_loss += factor * reg_loss
+
                             if params.use_rank_predictor > 0:
                                 g_loss.backward(retain_graph=True)
                             else:
-                                g_loss.backward()
+                                g_loss.backward(retain_graph=True)
                             g_optimizer.step()  # Only optimizes G's parameters
                             if params.atype in ['mlp', 'bilinear']:
                                 a_optimizer.step()
@@ -185,9 +202,20 @@ class Trainer:
                                 rank_losses.append(rank_loss.data.cpu().numpy())
 
                             # Orthogonalize
-#                             if params.context == 1:
-#                                 self.orthogonalize(g.map2.weight.data)
-                            if params.context != 1:
+                            if params.context == 1:
+                                pass
+                                # for i, p in enumerate(g.parameters()):
+                                #     print("%d: " % i)
+                                #     print(p.shape)
+                                # W_orig = g.map1.weight.data
+                                # print(W_orig)
+                                # print(W_orig)
+                                # W_top = W_orig[:300, :300]
+                                # W_bottom = W_orig[300:, 300:]
+                                # print(W_top)
+                                # print(W_bottom)
+                                # self.orthogonalize(g.map2.weight.data)
+                            else:
                                 self.orthogonalize(g.map1.weight.data)
                             
                             if params.use_rank_predictor > 0:

@@ -87,15 +87,21 @@ def parse_arguments():
     parser.add_argument("--tgt_lang", dest="tgt_lang", type=str, default='zh')
     parser.add_argument("--initialize_prev_best", dest="initialize_prev_best", type=str, default=0)
     parser.add_argument("--prev_best_model_fname", dest="prev_best_model_fname", type=str, default='generator_weights_en_zh_seed_394_mf_50000_lr_0.2_p@1_17.530.t7')
+    parser.add_argument("--non_linear", dest="non_linear", type=int, default=0)
+
     return parser.parse_args()
 
 
 def _get_eval_params(params):
     params = copy.deepcopy(params)
-    params.ks = [1, 5, 10]
-    params.methods = ['nn', 'csls']
-    params.models = ['procrustes', 'adv']
-    params.refine = ['without-ref', 'with-ref']
+#     params.ks = [1, 5, 10]
+#     params.methods = ['nn', 'csls']
+#     params.models = ['procrustes', 'adv']
+#     params.refine = ['without-ref', 'with-ref']
+    params.ks = [1]
+    params.methods = ['csls']
+    params.models = ['adv']
+    params.refine = ['with-ref']
     return params
 
 

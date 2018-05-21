@@ -1,0 +1,1 @@
+epoch, dis_loss, dis_acc, g_loss, acc, acc_new

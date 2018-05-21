@@ -275,7 +275,8 @@ class Evaluator:
         eps = self.eps
         change_in_loss = 10000
         prev_loss = 10000
-        W = self.W.transpose(0, 1)
+        # W = self.W.transpose(0, 1)
+        W = self.W
         iter = 1
         alpha = self.alpha
         print("Alpha: ", alpha)
@@ -313,7 +314,8 @@ class Evaluator:
             prev_loss = loss
             iter += 1
         print("Stopping predicate sub-gradient descent.")
-        return best_W.transpose(0, 1)
+        return best_W
+        #return best_W.transpose(0, 1)
 
     @staticmethod
     def get_csls_loss(xb, xq, r_source, r_target):
