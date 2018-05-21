@@ -277,7 +277,7 @@ class Evaluator:
         prev_loss = 10000
         W = self.W.transpose(0, 1)
         iter = 1
-        alpha = 50
+        alpha = self.alpha
         print("Alpha: ", alpha)
         best_W = W
         print("Starting predicate sub-gradient descent...")
