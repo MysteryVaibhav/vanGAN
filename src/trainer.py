@@ -103,15 +103,6 @@ class Trainer:
             g_optimizer = optim.SGD(g.parameters(), lr=params.g_learning_rate)
             r_p_optimizer = optim.SGD(g.parameters(), lr=params.g_learning_rate)
 
-            # Regularization loss
-            reg_loss = 0
-            for i, p in enumerate(g.parameters()):
-                if i > 0:
-                    break
-                pred = p.transpose(0, 1)[300:, :]
-                reg_loss += pred.norm(2)
-            factor = 1e-2
-
             if params.atype in ['mlp', 'bilinear']:
                 a_optimizer = optim.SGD(a.parameters(), lr=params.g_learning_rate)
 
@@ -123,7 +114,17 @@ class Trainer:
                 r_p = r_p.cuda()
                 loss_fn = loss_fn.cuda()
                 r_p_loss_fn = r_p_loss_fn.cuda()
-
+                
+                # Regularization loss
+                reg_loss = 0
+                for i, p in enumerate(g.parameters()):
+                    if i > 0:
+                        break
+                    pred = p.transpose(0, 1)[300:, :]
+                    reg_loss += pred.norm(2)
+                factor = 1e-2
+                
+                reg_loss = reg_loss.cuda()
             # true_dict = get_true_dict(params.data_dir)
             d_acc_epochs = []
             g_loss_epochs = []
