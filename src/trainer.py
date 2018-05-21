@@ -122,8 +122,8 @@ class Trainer:
             g_loss_epochs = []
 
             # logs for plotting later
-            log_file = open("log_src_tgt.txt", "w")     # Being overwritten in every loop, not really required
-            log_file.write("epoch, dis_loss, dis_acc, g_loss\n")
+            log_file = open("log_{}_{}_{}.txt".format(self.params.src_lang, self.params.tgt_lang, seed), "w")     # Being overwritten in every loop, not really required
+            log_file.write("epoch, dis_loss, dis_acc, g_loss, acc, acc_new\n")
 
             try:
                 for epoch in range(params.num_epochs):
@@ -229,8 +229,9 @@ class Trainer:
                             all_precisions = evaluator.get_all_precisions(g(src_emb.weight).data)
                         #print(json.dumps(all_precisions))
                         p_1 = all_precisions['validation']['adv']['without-ref']['nn'][1]
-                        log_file.write("{},{:.5f},{:.5f},{:.5f}\n".format(epoch + 1, np.asscalar(np.mean(d_losses)), hit / total, np.asscalar(np.mean(g_losses))))
-                        log_file.write(str(all_precisions) + "\n")
+                        p_1_new = all_precisions['validation-new']['adv']['without-ref']['nn'][1]
+                        log_file.write("{},{:.5f},{:.5f},{:.5f},{:.5f},{:.5f}\n".format(epoch + 1, np.asscalar(np.mean(d_losses)), hit / total, np.asscalar(np.mean(g_losses)), p_1, p_1_new))
+                        #log_file.write(str(all_precisions) + "\n")
                         # Saving generator weights
 
                         torch.save(g.state_dict(), 'generator_weights_' + suffix_str + '_seed_{}_mf_{}_lr_{}_p@1_{:.3f}.t7'.format(seed, epoch, params.g_learning_rate, p_1))
@@ -245,7 +246,7 @@ class Trainer:
                 plt.xlabel('epochs')
                 plt.legend()
                 fig.savefig('d_g.png')
-
+            
             except KeyboardInterrupt:
                 print("Interrupted.. saving model !!!")
                 torch.save(g.state_dict(), 'g_model_interrupt.t7')
@@ -254,9 +255,7 @@ class Trainer:
                     torch.save(a.state_dict(), 'a_model_interrupt.t7')
                 log_file.close()
                 exit()
-
             log_file.close()
-
         return g
 
     def orthogonalize(self, W):
