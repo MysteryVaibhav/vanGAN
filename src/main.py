@@ -84,7 +84,7 @@ def parse_arguments():
     parser.add_argument("--use_rank_predictor", dest="use_rank_predictor", type=int, default=use_rank_predictor)
 
     parser.add_argument("--src_lang", dest="src_lang", type=str, default='en')
-    parser.add_argument("--tgt_lang", dest="tgt_lang", type=str, default='es')
+    parser.add_argument("--tgt_lang", dest="tgt_lang", type=str, default='zh')
     parser.add_argument("--initialize_prev_best", dest="initialize_prev_best", type=str, default=0)
     parser.add_argument("--prev_best_model_fname", dest="prev_best_model_fname", type=str, default='generator_weights_en_zh_seed_394_mf_50000_lr_0.2_p@1_17.530.t7')
     return parser.parse_args()

@@ -11,28 +11,29 @@ class Generator(nn.Module):
 
         self.context = hyperparams.context
         assert self.context in [0, 1, 2]
+        
+        self.non_linear = 0
 
         if self.context == 0 or self.context == 2:
             self.map1 = nn.Linear(input_size, output_size, bias=False)
             #nn.init.orthogonal(self.map1.weight)
             nn.init.eye(self.map1.weight)   # As per the fb implementation initialization
         elif self.context == 1:
-            # leaky_slope = hyperparams.leaky_slope
-            # self.map1 = nn.Linear(input_size, hidden_size)
-            # self.activation1 = nn.LeakyReLU(leaky_slope)
-            # self.map2 = nn.Linear(hidden_size, output_size, bias=False)
-            print(input_size)
-            print(output_size)
             self.map1 = nn.Linear(input_size, output_size, bias=False)
             self.map1.data = torch.cat([torch.eye(output_size), torch.zeros(output_size, output_size)], 0)
-            print(self.map1.data)
+            if self.non_linear == 1:
+                leaky_slope = hyperparams.leaky_slope
+                self.activation1 = nn.LeakyReLU(leaky_slope)
+                self.map2 = nn.Linear(300, 300, bias=False)
 
     def forward(self, x):
         if self.context == 0 or self.context == 2:
             return self.map1(x)
         else:
-            # return self.map2(self.activation1(self.map1(x)))
-            return self.map1(x)
+            if self.non_linear == 1:
+                return self.map2(self.activation1(self.map1(x)))
+            else:
+                return self.map1(x)
 
 
 class Discriminator(nn.Module):

@@ -87,9 +87,6 @@ class Trainer:
                 g.load_state_dict(torch.load(prev_best_model_file_path, map_location='cpu'))
                 print(g.map1.weight.data)
 
-            for p in g.parameters():
-                print(p)
-
             if params.seed > 0:
                 seed = params.seed
             else:
@@ -188,9 +185,9 @@ class Trainer:
                                 rank_losses.append(rank_loss.data.cpu().numpy())
 
                             # Orthogonalize
-                            if params.context == 1:
-                                self.orthogonalize(g.map2.weight.data)
-                            else:
+#                             if params.context == 1:
+#                                 self.orthogonalize(g.map2.weight.data)
+                            if params.context != 1:
                                 self.orthogonalize(g.map1.weight.data)
                             
                             if params.use_rank_predictor > 0:
@@ -311,7 +308,7 @@ def construct_input(knn_emb, indices, src_emb, attn, atype, context=1, use_cuda=
     h = src_emb(to_variable(indices, use_cuda=use_cuda))
     alpha = attn(H, h)
     if context == 2 and atype == 'dot':
-        alpha = alpha ** expo
+        alpha = alpha ** 1
     p = F.softmax(alpha, dim=1)
     c = torch.matmul(H.transpose(1, 2), p.unsqueeze(2)).squeeze()
 
