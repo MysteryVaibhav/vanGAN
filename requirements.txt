@@ -4,7 +4,7 @@ bleach==2.1.2
 boto==2.48.0
 bz2file==0.98
 cachetools==2.0.1
-certifi==2018.1.18
+certifi==2022.12.7
 cffi==1.11.4
 chardet==3.0.4
 cryptography==2.1.4
